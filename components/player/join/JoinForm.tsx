@@ -1,0 +1,178 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { User, ArrowRight, Users, Calendar, Zap } from "lucide-react";
+import { joinSessionByIdAction } from "@/actions/player.actions";
+import { generateDeviceToken } from "@/lib/utils/generate-code";
+import { formatDate, formatTime } from "@/lib/utils/format";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ROUTES } from "@/lib/constants/routes";
+import type { Session } from "@/types/session.types";
+
+const DEVICE_TOKEN_KEY = "openplay_device_token";
+const PLAYER_KEY       = (sessionId: string) => `openplay_player_${sessionId}`;
+
+interface JoinFormProps {
+  session: Session;
+}
+
+export function JoinForm({ session }: JoinFormProps) {
+  const router = useRouter();
+  const [name, setName]         = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [deviceToken, setDeviceToken] = useState<string>("");
+
+  // Get or create device token
+  useEffect(() => {
+    let token = localStorage.getItem(DEVICE_TOKEN_KEY);
+    if (!token) {
+      token = generateDeviceToken();
+      localStorage.setItem(DEVICE_TOKEN_KEY, token);
+    }
+    setDeviceToken(token);
+
+    // Check if already joined this session
+    const savedPlayer = localStorage.getItem(PLAYER_KEY(session.id));
+    if (savedPlayer) {
+      const player = JSON.parse(savedPlayer);
+      router.replace(ROUTES.PLAY(session.id));
+    }
+  }, [session.id, router]);
+
+  async function handleJoin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError("Name must be at least 2 characters.");
+      return;
+    }
+    if (!deviceToken) {
+      setError("Unable to identify your device. Please refresh and try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await joinSessionByIdAction(session.id, name.trim(), deviceToken);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      // Save player identity locally
+      localStorage.setItem(
+        PLAYER_KEY(session.id),
+        JSON.stringify({
+          player_id:    result.data.player.id,
+          session_id:   session.id,
+          display_name: result.data.player.display_name,
+          device_token: deviceToken,
+        })
+      );
+
+      toast.success(
+        result.data.isReturning
+          ? `Welcome back, ${result.data.player.display_name}!`
+          : `You're in, ${result.data.player.display_name}!`
+      );
+
+      router.push(ROUTES.PLAY(session.id));
+    } catch {
+      setError("Failed to join. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <motion.div
+      className="w-full max-w-sm"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* Logo */}
+      <div className="mb-6 text-center">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-3">
+          <Zap className="h-7 w-7 text-white" />
+        </div>
+        <h1 className="text-xl font-bold text-foreground">Join Open Play</h1>
+        <p className="mt-1 text-sm text-muted-foreground">You&apos;ve been invited to join</p>
+      </div>
+
+      {/* Session info card */}
+      <Card className="mb-4 border-primary/20 bg-primary/5">
+        <CardContent className="p-4 space-y-2">
+          <p className="font-bold text-foreground text-lg">{session.session_name}</p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              {session.club_name}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {formatDate(session.session_date)}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {formatTime(session.start_time)}
+            {session.end_time ? ` – ${formatTime(session.end_time)}` : ""}
+            {" "}&middot; {session.number_of_courts} court{session.number_of_courts !== 1 ? "s" : ""}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Join form */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle>What&apos;s your name?</CardTitle>
+          <CardDescription>
+            This will be shown on the leaderboard and queue.
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleJoin}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Your Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="name"
+                  placeholder="Alex K."
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); setError(null); }}
+                  maxLength={30}
+                  className="pl-10 text-base h-12"
+                  autoFocus
+                  autoComplete="name"
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
+
+            <Button type="submit" className="w-full" size="lg" loading={isLoading}>
+              Join Queue
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            <p className="text-center text-xs text-muted-foreground">
+              No account required &middot; Guest mode only
+            </p>
+          </CardContent>
+        </form>
+      </Card>
+    </motion.div>
+  );
+}

@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   OpenPlay Design System — CSS Custom Properties
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* Light Mode */
+    --background:         210 40% 98%;     /* #F8FAFC */
+    --foreground:         222 47% 11%;     /* #0F172A */
+
+    --card:               0 0% 100%;       /* #FFFFFF */
+    --card-foreground:    222 47% 11%;
+
+    --popover:            0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary:            221 83% 53%;     /* #2563EB Blue-600 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary:          142 71% 45%;     /* #16A34A Green-600 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted:              214 32% 91%;     /* #E2E8F0 */
+    --muted-foreground:   215 16% 47%;     /* #64748B */
+
+    --accent:             24 94% 53%;      /* #F97316 Orange-500 */
+    --accent-foreground:  0 0% 100%;
+
+    --destructive:        0 84% 60%;       /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border:             214 32% 91%;     /* #E2E8F0 */
+    --input:              214 32% 91%;
+    --ring:               221 83% 53%;
+
+    --radius:             0.75rem;         /* 12px — rounded-xl base */
+
+    /* Brand-specific tokens */
+    --sidebar-width:      16rem;
+    --topbar-height:      4rem;
+  }
+
+  .dark {
+    /* Dark Mode */
+    --background:         222 47% 11%;     /* #0F172A */
+    --foreground:         210 40% 96%;     /* #F1F5F9 */
+
+    --card:               217 33% 17%;     /* #1E293B */
+    --card-foreground:    210 40% 96%;
+
+    --popover:            217 33% 17%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary:            221 83% 53%;     /* #2563EB */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary:          142 71% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted:              217 33% 25%;     /* #334155 */
+    --muted-foreground:   215 20% 65%;     /* #94A3B8 */
+
+    --accent:             24 94% 53%;
+    --accent-foreground:  0 0% 100%;
+
+    --destructive:        0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border:             217 33% 25%;
+    --input:              217 33% 25%;
+    --ring:               221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Touch-friendly interactions on mobile */
+  button, a, [role="button"] {
+    @apply cursor-pointer select-none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus visible only — no outline on mouse click */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* ── Glassmorphism card ── */
+  .glass-card {
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md
+           border border-white/20 dark:border-slate-700/50;
+  }
+
+  /* ── Gradient text ── */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-blue-400
+           bg-clip-text text-transparent;
+  }
+
+  /* ── Live badge pulse ── */
+  .live-dot {
+    @apply relative flex h-2.5 w-2.5;
+  }
+  .live-dot::before {
+    content: "";
+    @apply absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75
+           animate-ping;
+  }
+  .live-dot-inner {
+    @apply relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500;
+  }
+
+  /* ── Sidebar nav item ── */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5
+           text-sm font-medium text-muted-foreground
+           transition-all duration-150
+           hover:bg-muted hover:text-foreground;
+  }
+  .nav-item-active {
+    @apply bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary;
+  }
+
+  /* ── Stat card ── */
+  .stat-card {
+    @apply rounded-2xl bg-card border border-border p-5
+           shadow-card hover:shadow-card-md transition-shadow duration-200;
+  }
+
+  /* ── Player status badge ── */
+  .status-waiting  { @apply bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400; }
+  .status-playing  { @apply bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400; }
+  .status-resting  { @apply bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400; }
+  .status-offline  { @apply bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400; }
+
+  /* ── Court card ── */
+  .court-available   { @apply border-l-4 border-l-green-500; }
+  .court-ready        { @apply border-l-4 border-l-accent; }
+  .court-occupied     { @apply border-l-4 border-l-primary; }
+  .court-maintenance  { @apply border-l-4 border-l-orange-400; }
+
+  /* ── Mobile: large queue position ── */
+  .queue-position-badge {
+    @apply relative flex items-center justify-center
+           rounded-full bg-gradient-to-br from-primary to-blue-700
+           text-white font-bold shadow-card-lg;
+    width: 11rem;
+    height: 11rem;
+    font-size: 4rem;
+    line-height: 1;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar but keep scrollable */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area padding for notched phones */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}

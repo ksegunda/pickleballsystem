@@ -1,0 +1,485 @@
+// Auto-generated Supabase database types
+// Run: npx supabase gen types typescript --project-id YOUR_PROJECT_ID > types/database.types.ts
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type SessionStatus = "pending" | "active" | "paused" | "ended" | "archived";
+export type PlayerStatus  = "waiting" | "playing" | "resting" | "offline";
+export type CourtStatus   = "available" | "occupied" | "maintenance";
+export type MatchStatus   = "pending" | "in_progress" | "completed" | "cancelled" | "forecasted";
+export type TeamSide      = "team_a" | "team_b";
+export type MatchResult   = "win" | "loss";
+export type QueueStatus   = "waiting" | "matched" | "removed";
+
+export interface Database {
+  public: {
+    Tables: {
+      hosts: {
+        Row: {
+          id:         string;
+          email:      string;
+          name:       string;
+          club_name:  string | null;
+          avatar_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?:        string;
+          email:      string;
+          name:       string;
+          club_name?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["hosts"]["Insert"]>;
+        Relationships: [];
+      };
+      sessions: {
+        Row: {
+          id:                string;
+          host_id:           string;
+          club_name:         string;
+          session_name:      string;
+          session_date:      string;
+          start_time:        string;
+          end_time:          string | null;
+          number_of_courts:  number;
+          max_players:       number | null;
+          status:            SessionStatus;
+          join_code:         string;
+          qr_code_data:      string | null;
+          created_at:        string;
+          started_at:        string | null;
+          ended_at:          string | null;
+        };
+        Insert: {
+          id?:               string;
+          host_id:           string;
+          club_name:         string;
+          session_name:      string;
+          session_date:      string;
+          start_time:        string;
+          end_time?:         string | null;
+          number_of_courts:  number;
+          max_players?:      number | null;
+          status?:           SessionStatus;
+          join_code?:        string;
+          qr_code_data?:     string | null;
+          created_at?:       string;
+          started_at?:       string | null;
+          ended_at?:         string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["sessions"]["Insert"]>;
+        Relationships: [];
+      };
+      session_settings: {
+        Row: {
+          id:                    string;
+          session_id:            string;
+          theme:                 string;
+          dark_mode:             boolean;
+          language:              string;
+          allow_late_join:       boolean;
+          games_to_win:          number;
+          match_format:          string;
+          weight_waiting_time:   number;
+          weight_games_played:   number;
+          weight_performance:    number;
+          anti_repeat_threshold: number;
+          updated_at:            string;
+        };
+        Insert: {
+          id?:                    string;
+          session_id:             string;
+          theme?:                 string;
+          dark_mode?:             boolean;
+          language?:              string;
+          allow_late_join?:       boolean;
+          games_to_win?:          number;
+          match_format?:          string;
+          weight_waiting_time?:   number;
+          weight_games_played?:   number;
+          weight_performance?:    number;
+          anti_repeat_threshold?: number;
+          updated_at?:            string;
+        };
+        Update: Partial<Database["public"]["Tables"]["session_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      courts: {
+        Row: {
+          id:           string;
+          session_id:   string;
+          court_number: number;
+          court_name:   string;
+          status:       CourtStatus;
+          created_at:   string;
+        };
+        Insert: {
+          id?:           string;
+          session_id:    string;
+          court_number:  number;
+          court_name:    string;
+          status?:       CourtStatus;
+          created_at?:   string;
+        };
+        Update: Partial<Database["public"]["Tables"]["courts"]["Insert"]>;
+        Relationships: [];
+      };
+      players: {
+        Row: {
+          id:           string;
+          session_id:   string;
+          display_name: string;
+          status:       PlayerStatus;
+          device_token: string | null;
+          joined_at:    string;
+          last_active:  string;
+          is_active:    boolean;
+        };
+        Insert: {
+          id?:           string;
+          session_id:    string;
+          display_name:  string;
+          status?:       PlayerStatus;
+          device_token?: string | null;
+          joined_at?:    string;
+          last_active?:  string;
+          is_active?:    boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["players"]["Insert"]>;
+        Relationships: [];
+      };
+      queue_entries: {
+        Row: {
+          id:             string;
+          session_id:     string;
+          player_id:      string;
+          position:       number | null;
+          priority_score: number;
+          entered_queue:  string;
+          status:         QueueStatus;
+        };
+        Insert: {
+          id?:             string;
+          session_id:      string;
+          player_id:       string;
+          position?:       number | null;
+          priority_score?: number;
+          entered_queue?:  string;
+          status?:         QueueStatus;
+        };
+        Update: Partial<Database["public"]["Tables"]["queue_entries"]["Insert"]>;
+        Relationships: [];
+      };
+      matches: {
+        Row: {
+          id:           string;
+          session_id:   string;
+          court_id:     string | null;
+          match_number: number;
+          status:       MatchStatus;
+          winner_team:  TeamSide | null;
+          started_at:   string | null;
+          ended_at:     string | null;
+          created_at:   string;
+        };
+        Insert: {
+          id?:           string;
+          session_id:    string;
+          court_id?:     string | null;
+          match_number:  number;
+          status?:       MatchStatus;
+          winner_team?:  TeamSide | null;
+          started_at?:   string | null;
+          ended_at?:     string | null;
+          created_at?:   string;
+        };
+        Update: Partial<Database["public"]["Tables"]["matches"]["Insert"]>;
+        Relationships: [];
+      };
+      match_players: {
+        Row: {
+          id:        string;
+          match_id:  string;
+          player_id: string;
+          team:      TeamSide;
+          result:    MatchResult | null;
+        };
+        Insert: {
+          id?:        string;
+          match_id:   string;
+          player_id:  string;
+          team:       TeamSide;
+          result?:    MatchResult | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["match_players"]["Insert"]>;
+        Relationships: [];
+      };
+      player_statistics: {
+        Row: {
+          id:                    string;
+          player_id:             string;
+          session_id:            string;
+          games_played:          number;
+          wins:                  number;
+          losses:                number;
+          current_win_streak:    number;
+          longest_win_streak:    number;
+          current_losing_streak: number;
+          total_wait_secs:       number;
+          last_played_at:        string | null;
+          last_entered_queue:    string | null;
+          updated_at:            string;
+        };
+        Insert: {
+          id?:                    string;
+          player_id:              string;
+          session_id:             string;
+          games_played?:          number;
+          wins?:                  number;
+          losses?:                number;
+          current_win_streak?:    number;
+          longest_win_streak?:    number;
+          current_losing_streak?: number;
+          total_wait_secs?:       number;
+          last_played_at?:        string | null;
+          last_entered_queue?:    string | null;
+          updated_at?:            string;
+        };
+        Update: Partial<Database["public"]["Tables"]["player_statistics"]["Insert"]>;
+        Relationships: [];
+      };
+      partner_history: {
+        Row: {
+          id:               string;
+          session_id:       string;
+          player_id:        string;
+          partner_id:       string;
+          times_partnered:  number;
+          last_partnered:   string;
+        };
+        Insert: {
+          id?:               string;
+          session_id:        string;
+          player_id:         string;
+          partner_id:        string;
+          times_partnered?:  number;
+          last_partnered?:   string;
+        };
+        Update: Partial<Database["public"]["Tables"]["partner_history"]["Insert"]>;
+        Relationships: [];
+      };
+      opponent_history: {
+        Row: {
+          id:           string;
+          session_id:   string;
+          player_id:    string;
+          opponent_id:  string;
+          times_faced:  number;
+          last_faced:   string;
+        };
+        Insert: {
+          id?:           string;
+          session_id:    string;
+          player_id:     string;
+          opponent_id:   string;
+          times_faced?:  number;
+          last_faced?:   string;
+        };
+        Update: Partial<Database["public"]["Tables"]["opponent_history"]["Insert"]>;
+        Relationships: [];
+      };
+      reports: {
+        Row: {
+          id:           string;
+          session_id:   string;
+          generated_at: string;
+          data:         Json;
+          pdf_url:      string | null;
+          excel_url:    string | null;
+        };
+        Insert: {
+          id?:           string;
+          session_id:    string;
+          generated_at?: string;
+          data:          Json;
+          pdf_url?:      string | null;
+          excel_url?:    string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>;
+        Relationships: [];
+      };
+    };
+    Views: {
+      queue_with_stats: {
+        Row: {
+          queue_id:             string;
+          session_id:           string;
+          player_id:            string;
+          position:             number | null;
+          priority_score:       number;
+          entered_queue:        string;
+          queue_status:         QueueStatus;
+          display_name:         string;
+          player_status:        PlayerStatus;
+          games_played:         number;
+          wins:                 number;
+          losses:               number;
+          win_rate:             number;
+          current_win_streak:   number;
+          longest_win_streak:   number;
+          current_losing_streak: number;
+          waiting_secs:         number;
+        };
+        Relationships: [];
+      };
+      leaderboard_view: {
+        Row: {
+          player_id:            string;
+          session_id:           string;
+          display_name:         string;
+          player_status:        PlayerStatus;
+          games_played:         number;
+          wins:                 number;
+          losses:               number;
+          win_rate:             number;
+          current_win_streak:   number;
+          longest_win_streak:   number;
+          current_losing_streak: number;
+          last_played_at:       string | null;
+          rank:                 number;
+        };
+        Relationships: [];
+      };
+      court_status_view: {
+        Row: {
+          court_id:      string;
+          session_id:    string;
+          court_name:    string;
+          court_number:  number;
+          court_status:  CourtStatus;
+          match_id:      string | null;
+          match_number:  number | null;
+          match_status:  MatchStatus | null;
+          started_at:    string | null;
+          winner_team:   TeamSide | null;
+          elapsed_secs:  number | null;
+          players:       Json;
+        };
+        Relationships: [];
+      };
+      forecast_pool_view: {
+        Row: {
+          match_id:      string;
+          session_id:    string;
+          match_number:  number;
+          created_at:    string;
+          players:       Json;
+        };
+        Relationships: [];
+      };
+      match_history_view: {
+        Row: {
+          match_id:      string;
+          session_id:    string;
+          match_number:  number;
+          court_name:    string;
+          started_at:    string | null;
+          ended_at:      string | null;
+          winner_team:   TeamSide | null;
+          players:       Json;
+        };
+        Relationships: [];
+      };
+      session_summary_view: {
+        Row: {
+          session_id:              string;
+          session_name:            string;
+          club_name:               string;
+          status:                  SessionStatus;
+          session_date:            string;
+          started_at:              string | null;
+          join_code:               string;
+          number_of_courts:        number;
+          total_players:           number;
+          players_waiting:         number;
+          players_playing:         number;
+          matches_completed:       number;
+          matches_in_progress:     number;
+          courts_available:        number;
+          avg_match_duration_secs: number | null;
+        };
+        Relationships: [];
+      };
+    };
+    Functions: {
+      generate_join_code: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      calculate_priority_score: {
+        Args: { p_player_id: string; p_session_id: string };
+        Returns: number;
+      };
+      recalculate_queue_positions: {
+        Args: { p_session_id: string };
+        Returns: void;
+      };
+      recalculate_priority_scores: {
+        Args: { p_session_id: string };
+        Returns: void;
+      };
+      generate_match: {
+        Args: { p_session_id: string; p_court_id?: string | null };
+        Returns: string | null;
+      };
+      start_match: {
+        Args: { p_match_id: string };
+        Returns: boolean;
+      };
+      forecast_next_sets: {
+        Args: { p_session_id: string };
+        Returns: void;
+      };
+      assign_forecast_to_free_courts: {
+        Args: { p_session_id: string };
+        Returns: void;
+      };
+      finish_match: {
+        Args: { p_match_id: string; p_winner_team: TeamSide };
+        Returns: boolean;
+      };
+      get_session_fairness_score: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      create_session_courts: {
+        Args: { p_session_id: string; p_num_courts: number };
+        Returns: void;
+      };
+      get_next_match_number: {
+        Args: { p_session_id: string };
+        Returns: number;
+      };
+    };
+    Enums: {
+      session_status: SessionStatus;
+      player_status:  PlayerStatus;
+      court_status:   CourtStatus;
+      match_status:   MatchStatus;
+      team_side:      TeamSide;
+      match_result:   MatchResult;
+      queue_entry_status: QueueStatus;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+}

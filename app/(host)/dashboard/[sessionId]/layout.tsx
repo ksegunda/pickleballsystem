@@ -1,0 +1,38 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { SessionService } from "@/services/session.service";
+import { getHostAction } from "@/actions/auth.actions";
+import { Sidebar } from "@/components/host/layout/Sidebar";
+import { cn } from "@/lib/utils/cn";
+
+interface DashboardLayoutProps {
+  children:    React.ReactNode;
+  params:      Promise<{ sessionId: string }>;
+}
+
+export default async function DashboardLayout({ children, params }: DashboardLayoutProps) {
+  const { sessionId } = await params;
+
+  const [supabase, host] = await Promise.all([createClient(), getHostAction()]);
+  if (!host) redirect("/login");
+
+  const service = new SessionService(supabase);
+  const session = await service.getSession(sessionId).catch(() => null);
+
+  if (!session || session.host_id !== host.id) {
+    redirect("/sessions");
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar sessionId={sessionId} host={host} sessionName={session.session_name} />
+
+      {/* Main content — offset for sidebar on desktop */}
+      <main className={cn("lg:pl-[var(--sidebar-width)] min-h-screen")}>
+        <div className="px-6 py-6 pt-20 lg:pt-6">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}

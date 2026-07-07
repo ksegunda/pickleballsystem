@@ -1,0 +1,26 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { SessionService } from "@/services/session.service";
+import { JoinForm } from "@/components/player/join/JoinForm";
+
+export const metadata: Metadata = { title: "Join Session" };
+
+interface PageProps {
+  params: Promise<{ code: string }>;
+}
+
+export default async function JoinWithCodePage({ params }: PageProps) {
+  const { code } = await params;
+  const supabase = await createClient();
+  const service  = new SessionService(supabase);
+
+  const session = await service.getSessionByJoinCode(code).catch(() => null);
+  if (!session) notFound();
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center p-6">
+      <JoinForm session={session} />
+    </div>
+  );
+}

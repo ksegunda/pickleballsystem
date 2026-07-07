@@ -1,0 +1,302 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { createSessionSchema, type CreateSessionSchema } from "@/lib/validations/session.schema";
+import { createSessionAction } from "@/actions/session.actions";
+import { ROUTES } from "@/lib/constants/routes";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+
+const STEPS = ["Basic Info", "Configuration", "Settings"] as const;
+
+export function SessionForm() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const today = new Date().toISOString().split("T")[0];
+  const now   = new Date().toTimeString().slice(0, 5);
+
+  const form = useForm<CreateSessionSchema>({
+    resolver: zodResolver(createSessionSchema),
+    defaultValues: {
+      session_date:     today,
+      start_time:       now,
+      number_of_courts: 2,
+      settings: {
+        allow_late_join: true,
+        dark_mode:       false,
+        match_format:    "doubles",
+        games_to_win:    11,
+      },
+    },
+  });
+
+  const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = form;
+
+  async function goNext() {
+    const fields: Record<number, (keyof CreateSessionSchema)[]> = {
+      0: ["club_name", "session_name", "session_date", "start_time"],
+      1: ["number_of_courts"],
+    };
+    const valid = await trigger(fields[step] ?? []);
+    if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
+
+  async function onSubmit(data: CreateSessionSchema) {
+    setIsLoading(true);
+    try {
+      const result = await createSessionAction(data);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Session created! Redirecting to dashboard…");
+      router.push(ROUTES.DASHBOARD(result.data.id));
+    } catch {
+      toast.error("Failed to create session. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const allowLateJoin = watch("settings.allow_late_join");
+  const darkMode      = watch("settings.dark_mode");
+
+  return (
+    <div className="space-y-6">
+      {/* Step indicators */}
+      <div className="flex items-center gap-2">
+        {STEPS.map((label, i) => (
+          <div key={label} className="flex items-center gap-2">
+            <div
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                i < step
+                  ? "bg-primary text-white"
+                  : i === step
+                  ? "bg-primary/10 text-primary border-2 border-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+            </div>
+            <span className={`text-sm font-medium ${i === step ? "text-foreground" : "text-muted-foreground"}`}>
+              {label}
+            </span>
+            {i < STEPS.length - 1 && <div className="mx-1 h-px w-8 bg-border" />}
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Session Details</CardTitle>
+                  <CardDescription>Basic information about your open play session</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="club_name">Club Name</Label>
+                    <Input id="club_name" placeholder="Pickled Courts CC" {...register("club_name")} />
+                    {errors.club_name && <p className="text-xs text-destructive">{errors.club_name.message}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="session_name">Session Name</Label>
+                    <Input id="session_name" placeholder="Friday Open Play" {...register("session_name")} />
+                    {errors.session_name && <p className="text-xs text-destructive">{errors.session_name.message}</p>}
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="session_date">Date</Label>
+                      <Input id="session_date" type="date" min={today} {...register("session_date")} />
+                      {errors.session_date && <p className="text-xs text-destructive">{errors.session_date.message}</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="start_time">Start Time</Label>
+                      <Input id="start_time" type="time" {...register("start_time")} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="end_time">End Time <span className="text-muted-foreground">(opt.)</span></Label>
+                      <Input id="end_time" type="time" {...register("end_time")} />
+                      {errors.end_time && <p className="text-xs text-destructive">{errors.end_time.message}</p>}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {step === 1 && (
+            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Court & Player Configuration</CardTitle>
+                  <CardDescription>Set up courts and player limits</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="number_of_courts">Number of Courts</Label>
+                      <Input
+                        id="number_of_courts"
+                        type="number"
+                        min={1}
+                        max={20}
+                        {...register("number_of_courts", { valueAsNumber: true })}
+                      />
+                      {errors.number_of_courts && <p className="text-xs text-destructive">{errors.number_of_courts.message}</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="max_players">Max Players <span className="text-muted-foreground">(opt.)</span></Label>
+                      <Input
+                        id="max_players"
+                        type="number"
+                        min={4}
+                        placeholder="Unlimited"
+                        {...register("max_players", { valueAsNumber: true, setValueAs: (v) => v === "" ? null : Number(v) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Match Format</Label>
+                    <Select
+                      defaultValue="doubles"
+                      onValueChange={(v) => setValue("settings.match_format", v as "doubles" | "singles")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doubles">Doubles (2v2)</SelectItem>
+                        <SelectItem value="singles">Singles (1v1)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Points to Win</Label>
+                    <Select
+                      defaultValue="11"
+                      onValueChange={(v) => setValue("settings.games_to_win", Number(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="11">11 points</SelectItem>
+                        <SelectItem value="15">15 points</SelectItem>
+                        <SelectItem value="21">21 points</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Session Settings</CardTitle>
+                  <CardDescription>Queue rules and preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Allow Late Join</p>
+                      <p className="text-xs text-muted-foreground">Players can join after the session starts</p>
+                    </div>
+                    <Switch
+                      checked={allowLateJoin}
+                      onCheckedChange={(v) => setValue("settings.allow_late_join", v)}
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Dark Mode</p>
+                      <p className="text-xs text-muted-foreground">Default theme for player screens</p>
+                    </div>
+                    <Switch
+                      checked={darkMode}
+                      onCheckedChange={(v) => setValue("settings.dark_mode", v)}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="rounded-xl bg-muted/50 p-4 space-y-3">
+                    <p className="text-sm font-semibold">Fairness Algorithm Weights</p>
+                    <p className="text-xs text-muted-foreground">
+                      Controls how the matchmaking algorithm prioritizes players. Weights must sum to 1.0.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Wait Time",    field: "settings.weight_waiting_time" as const, default: "0.40" },
+                        { label: "Games Played", field: "settings.weight_games_played" as const, default: "0.35" },
+                        { label: "Performance",  field: "settings.weight_performance"  as const, default: "0.25" },
+                      ].map((w) => (
+                        <div key={w.field} className="space-y-1">
+                          <Label className="text-xs">{w.label}</Label>
+                          <Input
+                            type="number"
+                            step="0.05"
+                            min="0"
+                            max="1"
+                            defaultValue={w.default}
+                            className="h-9 text-sm"
+                            {...register(w.field, { valueAsNumber: true })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-6">
+          {step > 0 ? (
+            <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          ) : (
+            <Button type="button" variant="ghost" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          )}
+
+          {step < STEPS.length - 1 ? (
+            <Button type="button" onClick={goNext}>
+              Continue
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button type="submit" loading={isLoading}>
+              <Check className="h-4 w-4" />
+              Create Session
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}

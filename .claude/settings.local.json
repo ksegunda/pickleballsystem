@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Set-Location \"c:\\\\project\\\\pickleball system\"; npm run type-check 2>&1 | Select-Object -First 80)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Set-Location \"c:\\\\project\\\\pickleball system\"; node -e \"const pkg = require\\('./node_modules/@supabase/supabase-js/package.json'\\); console.log\\('@supabase/supabase-js:', pkg.version\\); const ssr = require\\('./node_modules/@supabase/ssr/package.json'\\); console.log\\('@supabase/ssr:', ssr.version\\)\")",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Set-Location \"c:\\\\project\\\\pickleball system\"; Get-Content \"node_modules/@supabase/ssr/dist/main/createBrowserClient.d.ts\" -ErrorAction SilentlyContinue | Select-Object -First 20; Get-Content \"node_modules/@supabase/ssr/dist/main/index.d.ts\" -ErrorAction SilentlyContinue | Select-Object -First 10)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Set-Location \"c:\\\\project\\\\pickleball system\"; Get-Content \"node_modules/@supabase/ssr/dist/main/createBrowserClient.d.ts\" | Select-String \"function|export|<Database\" | Select-Object -First 15)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Set-Location \"c:\\\\project\\\\pickleball system\"; npm run type-check 2>&1 | Select-Object -First 50)",
+      "PowerShell(Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notmatch 'node_modules' } | Select-Object FullName, LastWriteTime | Sort-Object LastWriteTime | Format-Table -AutoSize)",
+      "PowerShell(npm run type-check 2>&1)",
+      "PowerShell(npm view @supabase/ssr versions --json 2>&1)",
+      "PowerShell(npm install @supabase/ssr@^0.12.0 2>&1)",
+      "PowerShell(npm run dev 2>&1)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\project\\\\pickleball system\\\\.claude\\\\skills\" -Recurse -Filter \"SKILL.md\" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })",
+      "PowerShell(Start-Sleep -Seconds 2; try { $r = Invoke-WebRequest -Uri http://localhost:3000 -UseBasicParsing -TimeoutSec 15; \"STATUS: $\\($r.StatusCode\\)\" } catch { \"ERROR: $\\($_.Exception.Message\\)\" })"
+    ]
+  }
+}
