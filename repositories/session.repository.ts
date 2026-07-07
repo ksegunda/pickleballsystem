@@ -1,6 +1,6 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
-import type { Database } from "@/types/database.types";
-import type { SessionInsert, SessionUpdate } from "@/types/session.types";
+import type { Database, Json } from "@/types/database.types";
+import type { SessionInsert, SessionUpdate, SessionReportData } from "@/types/session.types";
 
 type DB = TypedSupabaseClient;
 
@@ -101,5 +101,24 @@ export class SessionRepository {
         p_num_courts: count,
       });
     if (error) throw error;
+  }
+
+  // Snapshot of the final report, persisted before player data is purged —
+  // this is what "All Sessions" history can still show after the session ends.
+  async createReport(sessionId: string, data: SessionReportData) {
+    const { error } = await this.db
+      .from("reports")
+      .insert({ session_id: sessionId, data: data as unknown as Json });
+    if (error) throw error;
+  }
+
+  // Atomic: deletes all player-related data for the session and marks it
+  // 'ended' in a single Postgres transaction (see migration 014). Returns
+  // false if the session wasn't found or wasn't 'active' — nothing is
+  // deleted in that case.
+  async endSession(sessionId: string): Promise<boolean> {
+    const { data, error } = await this.db.rpc("end_session", { p_session_id: sessionId });
+    if (error) throw error;
+    return data ?? false;
   }
 }

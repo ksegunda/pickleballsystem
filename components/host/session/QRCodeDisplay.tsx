@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Download, QrCode } from "lucide-react";
+import { AlertTriangle, Download, QrCode } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,15 +20,42 @@ const REFRESH_INTERVAL_MS = 45_000;
 export function QRCodeDisplay({ sessionId, joinCode }: QRCodeDisplayProps) {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    function refresh() {
-      setQrUrl(`${ROUTES.QR_CODE(sessionId)}?t=${Date.now()}`);
-      setLoading(false);
+    let cancelled = false;
+
+    async function refresh() {
+      const url = `${ROUTES.QR_CODE(sessionId)}?t=${Date.now()}`;
+      try {
+        // The endpoint can fail (e.g. missing server config) and return a
+        // JSON error body — verify it actually succeeded before pointing
+        // <Image> at it, otherwise it renders as a broken image.
+        const res = await fetch(url, { cache: "no-store" });
+        if (cancelled) return;
+        if (!res.ok) {
+          setFailed(true);
+          setQrUrl(null);
+        } else {
+          setFailed(false);
+          setQrUrl(url);
+        }
+      } catch {
+        if (!cancelled) {
+          setFailed(true);
+          setQrUrl(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
+
     refresh();
     const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [sessionId]);
 
   async function download() {
@@ -48,7 +75,7 @@ export function QRCodeDisplay({ sessionId, joinCode }: QRCodeDisplayProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">QR Code</CardTitle>
-          <Button variant="ghost" size="sm" onClick={download} disabled={loading}>
+          <Button variant="ghost" size="sm" onClick={download} disabled={loading || failed}>
             <Download className="h-4 w-4" />
             Download
           </Button>
@@ -57,6 +84,11 @@ export function QRCodeDisplay({ sessionId, joinCode }: QRCodeDisplayProps) {
       <CardContent className="flex flex-col items-center gap-4">
         {loading ? (
           <Skeleton className="h-40 w-40 rounded-xl" />
+        ) : failed ? (
+          <div className="flex h-40 w-40 flex-col items-center justify-center gap-2 rounded-2xl bg-destructive/10 p-4 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <p className="text-xs text-destructive">QR code unavailable. Use the join code instead.</p>
+          </div>
         ) : qrUrl ? (
           <div className="rounded-2xl border border-border p-3 bg-white">
             <Image

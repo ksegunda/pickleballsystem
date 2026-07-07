@@ -67,13 +67,6 @@ export class SessionService {
     });
   }
 
-  async endSession(sessionId: string) {
-    return this.repo.update(sessionId, {
-      status:   "ended",
-      ended_at: new Date().toISOString(),
-    });
-  }
-
   async getSessionByJoinCode(code: string) {
     return this.repo.findByJoinCode(code);
   }

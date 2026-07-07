@@ -38,3 +38,32 @@ export interface UpdateSessionInput {
 export type SessionWithSummary = Session & {
   summary?: SessionSummary;
 };
+
+export interface SessionReportCourtStat {
+  courtName:     string;
+  matchesPlayed: number;
+}
+
+export interface SessionReportLeaderboardRow {
+  rank:         number;
+  displayName:  string;
+  wins:         number;
+  losses:       number;
+  gamesPlayed:  number;
+  winRate:      number;
+}
+
+export interface SessionReportData {
+  clubName:             string;
+  sessionName:          string;
+  sessionDate:          string;
+  startTime:            string;
+  endTime:              string | null;
+  generatedAt:          string;
+  totalPlayers:         number;
+  totalMatches:         number;
+  avgMatchDurationSecs: number | null;
+  sessionDurationSecs:  number | null;
+  courts:               SessionReportCourtStat[];
+  leaderboard:          SessionReportLeaderboardRow[];
+}

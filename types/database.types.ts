@@ -468,6 +468,10 @@ export interface Database {
         Args: { p_session_id: string };
         Returns: number;
       };
+      end_session: {
+        Args: { p_session_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       session_status: SessionStatus;

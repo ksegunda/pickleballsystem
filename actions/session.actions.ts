@@ -5,6 +5,7 @@ import { redirect }        from "next/navigation";
 import { createClient }    from "@/lib/supabase/server";
 import { createSessionSchema } from "@/lib/validations/session.schema";
 import { SessionService }  from "@/services/session.service";
+import { ReportService }   from "@/services/report.service";
 import type { CreateSessionSchema } from "@/lib/validations/session.schema";
 import type { ActionResult } from "./auth.actions";
 import type { Session } from "@/types/session.types";
@@ -53,13 +54,22 @@ export async function startSessionAction(
 
 export async function endSessionAction(
   sessionId: string
-): Promise<ActionResult<Session>> {
+): Promise<ActionResult<{ pdfBase64: string; fileName: string }>> {
   try {
     const { supabase } = await getAuthenticatedClient();
-    const service = new SessionService(supabase);
-    const session = await service.endSession(sessionId);
+    const service = new ReportService(supabase);
+    const { pdfBytes, reportData } = await service.endSessionWithReport(sessionId);
+
     revalidatePath("/sessions");
-    return { success: true, data: session };
+    revalidatePath(`/dashboard/${sessionId}`);
+
+    return {
+      success: true,
+      data: {
+        pdfBase64: Buffer.from(pdfBytes).toString("base64"),
+        fileName:  `${reportData.sessionName.replace(/[^a-z0-9]+/gi, "-")}-report.pdf`,
+      },
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to end session.";
     return { success: false, error: msg };

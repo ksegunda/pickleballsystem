@@ -13,35 +13,38 @@ import { ROUTES } from "@/lib/constants/routes";
 import { logoutAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import type { Database } from "@/types/database.types";
+import type { Database, SessionStatus } from "@/types/database.types";
 
 type Host = Database["public"]["Tables"]["hosts"]["Row"];
 
 interface SidebarItem {
-  label: string;
-  href:  string;
-  icon:  React.ComponentType<{ className?: string }>;
+  label:          string;
+  href:           string;
+  icon:           React.ComponentType<{ className?: string }>;
+  requiresActive?: boolean;
 }
 
 interface SidebarProps {
-  sessionId: string;
-  host:      Host | null;
-  sessionName: string;
+  sessionId:     string;
+  host:          Host | null;
+  sessionName:   string;
+  sessionStatus: SessionStatus;
 }
 
 function useSidebarItems(sessionId: string): SidebarItem[] {
   return [
     { label: "Overview",    href: ROUTES.DASHBOARD(sessionId),    icon: LayoutDashboard },
-    { label: "Courts",      href: ROUTES.COURTS(sessionId),       icon: Activity },
+    { label: "Courts",      href: ROUTES.COURTS(sessionId),       icon: Activity,  requiresActive: true },
     { label: "Players",     href: ROUTES.PLAYERS(sessionId),      icon: Users },
-    { label: "Leaderboard", href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy },
+    { label: "Leaderboard", href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy,    requiresActive: true },
   ];
 }
 
-export function Sidebar({ sessionId, host, sessionName }: SidebarProps) {
+export function Sidebar({ sessionId, host, sessionName, sessionStatus }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const items = useSidebarItems(sessionId);
+  const isSessionActive = sessionStatus === "active";
 
   const hostInitials = host?.name
     ? host.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
@@ -63,18 +66,33 @@ export function Sidebar({ sessionId, host, sessionName }: SidebarProps) {
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
         {items.map((item) => {
-          const isActive = pathname === item.href ||
+          const isCurrentPage = pathname === item.href ||
             (item.href !== ROUTES.DASHBOARD(sessionId) && pathname.startsWith(item.href));
+          const disabled = item.requiresActive && !isSessionActive;
+
+          if (disabled) {
+            return (
+              <div
+                key={item.href}
+                className="nav-item cursor-not-allowed opacity-40"
+                title="Available once the session has started"
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={cn("nav-item", isActive && "nav-item-active")}
+              className={cn("nav-item", isCurrentPage && "nav-item-active")}
             >
               <item.icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{item.label}</span>
-              {isActive && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />}
+              {isCurrentPage && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />}
             </Link>
           );
         })}

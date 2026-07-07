@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children, params }: DashboardLay
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar sessionId={sessionId} host={host} sessionName={session.session_name} />
+      <Sidebar sessionId={sessionId} host={host} sessionName={session.session_name} sessionStatus={session.status} />
 
       {/* Main content — offset for sidebar on desktop */}
       <main className={cn("lg:pl-[var(--sidebar-width)] min-h-screen")}>

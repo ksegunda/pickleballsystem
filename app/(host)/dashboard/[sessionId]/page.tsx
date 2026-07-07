@@ -11,6 +11,7 @@ import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { JoinCodeDisplay } from "@/components/host/session/JoinCodeDisplay";
 import { QRCodeDisplay } from "@/components/host/session/QRCodeDisplay";
 import { StartSessionButton } from "@/components/host/session/StartSessionButton";
+import { EndSessionButton } from "@/components/host/session/EndSessionButton";
 import { DashboardStats } from "@/components/host/session/DashboardStats";
 import { OverviewSummary } from "@/components/host/session/OverviewSummary";
 import { formatDate, formatTime } from "@/lib/utils/format";
@@ -72,12 +73,15 @@ export default async function DashboardPage({ params }: PageProps) {
             <StartSessionButton sessionId={sessionId} />
           )}
           {isActive && (
-            <Button variant="outline" asChild>
-              <Link href={ROUTES.COURTS(sessionId)}>
-                <Activity className="h-4 w-4" />
-                Manage Courts
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" asChild>
+                <Link href={ROUTES.COURTS(sessionId)}>
+                  <Activity className="h-4 w-4" />
+                  Manage Courts
+                </Link>
+              </Button>
+              <EndSessionButton sessionId={sessionId} />
+            </>
           )}
         </div>
       </div>
