@@ -8,7 +8,6 @@ import { MatchmakingService } from "@/services/matchmaking.service";
 import { Button } from "@/components/ui/button";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
-import { JoinCodeDisplay } from "@/components/host/session/JoinCodeDisplay";
 import { QRCodeDisplay } from "@/components/host/session/QRCodeDisplay";
 import { StartSessionButton } from "@/components/host/session/StartSessionButton";
 import { EndSessionButton } from "@/components/host/session/EndSessionButton";
@@ -94,6 +93,11 @@ export default async function DashboardPage({ params }: PageProps) {
         playersFallback={players.length}
       />
 
+      {/* QR code — primary way for players to join */}
+      <div className="max-w-sm">
+        <QRCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
+      </div>
+
       {/* Live overview: court assignments, next up, queue, leaderboard */}
       {isActive && overviewBoard && (
         <OverviewSummary
@@ -104,12 +108,6 @@ export default async function DashboardPage({ params }: PageProps) {
           initialLeaderboard={leaderboard}
         />
       )}
-
-      {/* Join code + QR */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <JoinCodeDisplay joinCode={session.join_code} sessionId={sessionId} />
-        <QRCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
-      </div>
 
       {/* Quick links */}
       {isActive && (
