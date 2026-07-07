@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/supabase/auth";
 import { loginSchema, registerSchema } from "@/lib/validations/auth.schema";
 import type { LoginSchema, RegisterSchema } from "@/lib/validations/auth.schema";
 import type { Database } from "@/types/database.types";
@@ -80,10 +81,10 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function getHostAction(): Promise<Host | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
   if (!user) return null;
 
+  const supabase = await createClient();
   const { data: host } = await supabase
     .from("hosts")
     .select("*")

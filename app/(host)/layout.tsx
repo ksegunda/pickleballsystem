@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/supabase/auth";
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getVerifiedUser();
 
   if (!user) {
     redirect("/login");

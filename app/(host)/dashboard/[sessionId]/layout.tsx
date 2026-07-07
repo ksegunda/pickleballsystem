@@ -13,12 +13,15 @@ interface DashboardLayoutProps {
 export default async function DashboardLayout({ children, params }: DashboardLayoutProps) {
   const { sessionId } = await params;
 
-  const [supabase, host] = await Promise.all([createClient(), getHostAction()]);
+  const supabase = await createClient();
+  const service   = new SessionService(supabase);
+
+  const [host, session] = await Promise.all([
+    getHostAction(),
+    service.getSession(sessionId).catch(() => null),
+  ]);
+
   if (!host) redirect("/login");
-
-  const service = new SessionService(supabase);
-  const session = await service.getSession(sessionId).catch(() => null);
-
   if (!session || session.host_id !== host.id) {
     redirect("/sessions");
   }
