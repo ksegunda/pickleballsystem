@@ -58,6 +58,11 @@ export class SessionRepository {
     return data;
   }
 
+  async delete(id: string) {
+    const { error } = await this.db.from("sessions").delete().eq("id", id);
+    if (error) throw error;
+  }
+
   async update(id: string, payload: SessionUpdate) {
     const { data, error } = await this.db
       .from("sessions")

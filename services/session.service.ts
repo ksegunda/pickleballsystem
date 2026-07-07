@@ -27,19 +27,26 @@ export class SessionService {
       join_code,
     });
 
-    // Create default settings
-    await this.repo.createSettings(session.id, {
-      theme:                  input.settings?.theme ?? "light",
-      dark_mode:              input.settings?.dark_mode ?? false,
-      language:               input.settings?.language ?? "en",
-      allow_late_join:        input.settings?.allow_late_join ?? true,
-      games_to_win:           input.settings?.games_to_win ?? 11,
-      match_format:           input.settings?.match_format ?? "doubles",
-      weight_waiting_time:    input.settings?.weight_waiting_time ?? 0.40,
-      weight_games_played:    input.settings?.weight_games_played ?? 0.35,
-      weight_performance:     input.settings?.weight_performance ?? 0.25,
-      anti_repeat_threshold:  input.settings?.anti_repeat_threshold ?? 3,
-    });
+    // Create default settings. If this fails (e.g. a constraint the client-side
+    // validation didn't catch), roll back the session row above instead of
+    // leaving an orphaned session with no settings.
+    try {
+      await this.repo.createSettings(session.id, {
+        theme:                  input.settings?.theme ?? "light",
+        dark_mode:              input.settings?.dark_mode ?? false,
+        language:               input.settings?.language ?? "en",
+        allow_late_join:        input.settings?.allow_late_join ?? true,
+        games_to_win:           input.settings?.games_to_win ?? 11,
+        match_format:           input.settings?.match_format ?? "doubles",
+        weight_waiting_time:    input.settings?.weight_waiting_time ?? 0.40,
+        weight_games_played:    input.settings?.weight_games_played ?? 0.35,
+        weight_performance:     input.settings?.weight_performance ?? 0.25,
+        anti_repeat_threshold:  input.settings?.anti_repeat_threshold ?? 3,
+      });
+    } catch (err) {
+      await this.repo.delete(session.id).catch(() => {});
+      throw err;
+    }
 
     return session;
   }

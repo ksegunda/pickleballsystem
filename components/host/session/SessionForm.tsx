@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createSessionSchema, type CreateSessionSchema } from "@/lib/validations/session.schema";
 import { createSessionAction } from "@/actions/session.actions";
 import { ROUTES } from "@/lib/constants/routes";
+import { formatTime } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,13 +21,26 @@ import { Separator } from "@/components/ui/separator";
 
 const STEPS = ["Basic Info", "Configuration", "Settings"] as const;
 
+const NO_END_TIME = "none";
+
+// Every 30-minute slot in a day, e.g. "00:00", "00:30", … "23:30".
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const value = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 === 0 ? "00" : "30"}`;
+  return { value, label: formatTime(value) };
+});
+
+function roundToNearestSlot(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  return `${String(h).padStart(2, "0")}:${m < 30 ? "00" : "30"}`;
+}
+
 export function SessionForm() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
-  const now   = new Date().toTimeString().slice(0, 5);
+  const now   = roundToNearestSlot(new Date().toTimeString().slice(0, 5));
 
   const form = useForm<CreateSessionSchema>({
     resolver: zodResolver(createSessionSchema),
@@ -47,7 +61,7 @@ export function SessionForm() {
 
   async function goNext() {
     const fields: Record<number, (keyof CreateSessionSchema)[]> = {
-      0: ["club_name", "session_name", "session_date", "start_time"],
+      0: ["club_name", "session_name", "session_date", "start_time", "end_time"],
       1: ["number_of_courts"],
     };
     const valid = await trigger(fields[step] ?? []);
@@ -127,11 +141,38 @@ export function SessionForm() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="start_time">Start Time</Label>
-                      <Input id="start_time" type="time" {...register("start_time")} />
+                      <Select
+                        value={watch("start_time")}
+                        onValueChange={(v) => setValue("start_time", v, { shouldValidate: true })}
+                      >
+                        <SelectTrigger id="start_time">
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="end_time">End Time <span className="text-muted-foreground">(opt.)</span></Label>
-                      <Input id="end_time" type="time" {...register("end_time")} />
+                      <Select
+                        value={watch("end_time") || NO_END_TIME}
+                        onValueChange={(v) =>
+                          setValue("end_time", v === NO_END_TIME ? "" : v, { shouldValidate: true })
+                        }
+                      >
+                        <SelectTrigger id="end_time">
+                          <SelectValue placeholder="No end time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_END_TIME}>No end time</SelectItem>
+                          {TIME_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       {errors.end_time && <p className="text-xs text-destructive">{errors.end_time.message}</p>}
                     </div>
                   </div>
@@ -264,6 +305,11 @@ export function SessionForm() {
                         </div>
                       ))}
                     </div>
+                    {errors.settings?.weight_performance && (
+                      <p className="text-xs text-destructive">
+                        {errors.settings.weight_performance.message}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

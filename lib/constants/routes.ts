@@ -18,6 +18,7 @@ export const ROUTES = {
   // Player
   JOIN:        "/join",
   JOIN_CODE:   (code: string) => `/join/${code}`,
+  JOIN_TOKEN:  (token: string) => `/join/t/${token}`,
   PLAY:        (sessionId: string) => `/play/${sessionId}`,
   PLAY_HISTORY:(sessionId: string) => `/play/${sessionId}/history`,
   PLAY_STATS:  (sessionId: string) => `/play/${sessionId}/stats`,

@@ -36,7 +36,7 @@ export async function loginAction(formData: LoginSchema): Promise<ActionResult> 
   }
 
   revalidatePath("/", "layout");
-  redirect("/sessions");
+  return { success: true, data: null };
 }
 
 export async function registerAction(formData: RegisterSchema): Promise<ActionResult> {
@@ -71,7 +71,7 @@ export async function registerAction(formData: RegisterSchema): Promise<ActionRe
   // (migration 006) when the auth.users row is created above.
 
   revalidatePath("/", "layout");
-  redirect("/sessions");
+  return { success: true, data: null };
 }
 
 export async function logoutAction(): Promise<void> {

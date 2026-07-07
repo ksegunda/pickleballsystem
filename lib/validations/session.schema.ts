@@ -51,6 +51,16 @@ export const createSessionSchema = z.object({
     return data.end_time > data.start_time;
   },
   { message: "End time must be after start time", path: ["end_time"] }
+).refine(
+  (data) => {
+    const { weight_waiting_time, weight_games_played, weight_performance } = data.settings;
+    const sum = weight_waiting_time + weight_games_played + weight_performance;
+    return Math.abs(sum - 1.0) < 0.01;
+  },
+  {
+    message: "Wait Time, Games Played, and Performance weights must add up to 1.0",
+    path: ["settings", "weight_performance"],
+  }
 );
 
 export type CreateSessionSchema = z.infer<typeof createSessionSchema>;

@@ -4,6 +4,7 @@ import { Users, Activity, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SessionService } from "@/services/session.service";
 import { PlayerService } from "@/services/player.service";
+import { MatchmakingService } from "@/services/matchmaking.service";
 import { Button } from "@/components/ui/button";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
@@ -11,6 +12,7 @@ import { JoinCodeDisplay } from "@/components/host/session/JoinCodeDisplay";
 import { QRCodeDisplay } from "@/components/host/session/QRCodeDisplay";
 import { StartSessionButton } from "@/components/host/session/StartSessionButton";
 import { DashboardStats } from "@/components/host/session/DashboardStats";
+import { OverviewSummary } from "@/components/host/session/OverviewSummary";
 import { formatDate, formatTime } from "@/lib/utils/format";
 import { ROUTES } from "@/lib/constants/routes";
 
@@ -35,6 +37,19 @@ export default async function DashboardPage({ params }: PageProps) {
 
   const isActive  = session.status === "active";
   const isPending = session.status === "pending";
+
+  // Courts/queue/leaderboard only exist once the session is active — skip
+  // fetching them for a pending session with no courts yet.
+  let overviewBoard: Awaited<ReturnType<MatchmakingService["getCourtsBoard"]>> | null = null;
+  let leaderboard: Awaited<ReturnType<PlayerService["getLeaderboard"]>> = [];
+
+  if (isActive) {
+    const matchmakingService = new MatchmakingService(supabase);
+    [overviewBoard, leaderboard] = await Promise.all([
+      matchmakingService.getCourtsBoard(sessionId),
+      playerService.getLeaderboard(sessionId),
+    ]);
+  }
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -74,6 +89,17 @@ export default async function DashboardPage({ params }: PageProps) {
         initialSummary={summary}
         playersFallback={players.length}
       />
+
+      {/* Live overview: court assignments, next up, queue, leaderboard */}
+      {isActive && overviewBoard && (
+        <OverviewSummary
+          sessionId={sessionId}
+          initialCourts={overviewBoard.courts}
+          initialForecastPool={overviewBoard.forecastPool}
+          initialQueue={overviewBoard.queue}
+          initialLeaderboard={leaderboard}
+        />
+      )}
 
       {/* Join code + QR */}
       <div className="grid gap-4 lg:grid-cols-2">

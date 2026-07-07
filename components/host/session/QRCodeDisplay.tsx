@@ -13,13 +13,22 @@ interface QRCodeDisplayProps {
   joinCode:  string;
 }
 
+// Matches the token TTL baked into /api/qr/[sessionId] — refresh a little
+// before expiry so the displayed image is never stale by the time it's scanned.
+const REFRESH_INTERVAL_MS = 45_000;
+
 export function QRCodeDisplay({ sessionId, joinCode }: QRCodeDisplayProps) {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setQrUrl(ROUTES.QR_CODE(sessionId));
-    setLoading(false);
+    function refresh() {
+      setQrUrl(`${ROUTES.QR_CODE(sessionId)}?t=${Date.now()}`);
+      setLoading(false);
+    }
+    refresh();
+    const interval = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, [sessionId]);
 
   async function download() {
