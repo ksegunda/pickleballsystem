@@ -18,7 +18,7 @@ export async function getCourtsBoardAction(sessionId: string) {
       courts: [],
       eligibility: { playersPerMatch: PLAYERS_PER_MATCH, waitingCount: 0, hasEnoughPlayers: false },
       forecastPool: [],
-      manualSlot: null,
+      hasManualSlot: false,
       queue: [],
     };
   }

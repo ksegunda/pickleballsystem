@@ -14,11 +14,19 @@ import type { CourtView } from "@/types/match.types";
 import type { TeamSide } from "@/types/database.types";
 
 interface CourtCardProps {
-  sessionId:        string;
+  sessionId:         string;
   court:             CourtView;
   hasEnoughPlayers:  boolean;
   playersPerMatch:   number;
+  // Forces a full board refetch if an optimistic state (just started / just
+  // finished) hasn't been reconciled by real data within STALL_TIMEOUT_MS —
+  // the realtime push confirming it can lag (see Bug 1), and without this
+  // the card would otherwise wait on that push indefinitely with no
+  // fallback, which is what made Bug 4's "Wrapping up…" spinner hang.
+  onStalledRefresh:  () => void;
 }
+
+const STALL_TIMEOUT_MS = 7000;
 
 interface CourtMatchPlayer {
   player_id:    string;
@@ -28,7 +36,7 @@ interface CourtMatchPlayer {
 
 type LoadingAction = "generate" | "start" | "team_a" | "team_b" | null;
 
-export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch }: CourtCardProps) {
+export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch, onStalledRefresh }: CourtCardProps) {
   const [loadingAction, setLoadingAction] = useState<LoadingAction>(null);
 
   // Bridges the gap between "the action resolved" and "the parent's realtime
@@ -47,6 +55,18 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch 
   useEffect(() => {
     setJustFinished(false);
   }, [court.match_id, court.match_status]);
+
+  useEffect(() => {
+    if (!justFinished) return;
+    const timeout = setTimeout(onStalledRefresh, STALL_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [justFinished, onStalledRefresh]);
+
+  useEffect(() => {
+    if (optimisticStartedAt === null) return;
+    const timeout = setTimeout(onStalledRefresh, STALL_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [optimisticStartedAt, onStalledRefresh]);
 
   const isFinishing  = justFinished;
   const isFree       = !isFinishing && court.match_id === null && court.court_status !== "maintenance";

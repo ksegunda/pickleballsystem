@@ -13,80 +13,104 @@ type QueueRow = Database["public"]["Views"]["queue_with_stats"]["Row"];
 interface ForecastPoolSectionProps {
   sessionId:       string;
   sets:            ForecastSet[];
-  manualSlot:      ForecastSet | null;
+  hasManualSlot:   boolean;
   queue:           QueueRow[];
   playersPerMatch: number;
   onChanged:       () => void;
 }
 
 export function ForecastPoolSection({
-  sessionId, sets, manualSlot, queue, playersPerMatch, onChanged,
+  sessionId, sets, hasManualSlot, queue, playersPerMatch, onChanged,
 }: ForecastPoolSectionProps) {
   const [editingSet, setEditingSet] = useState<ForecastSet | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  if (sets.length === 0 && !manualSlot) return null;
+  if (sets.length === 0 && !hasManualSlot) return null;
 
   const readyCount = sets.filter((s) => s.matchId !== null).length;
 
-  function renderCard(set: ForecastSet, label: string, isManualCard: boolean) {
+  // Only ever called for a ready (matchId !== null) set — renderEmptyCard
+  // handles the placeholder case separately.
+  function renderCard(set: ForecastSet) {
+    const label = set.isManual ? "Manual" : `Set ${set.setNumber}`;
     const teamA = set.players.filter((p) => p.team === "team_a");
     const teamB = set.players.filter((p) => p.team === "team_b");
-    const isReady = set.matchId !== null;
-    const clickable = isReady || isManualCard;
 
     return (
       <Card
-        key={label}
-        className={[
-          isReady ? "" : "border-dashed",
-          clickable ? "cursor-pointer transition-colors hover:border-primary/50" : "",
-        ].join(" ")}
-        onClick={clickable ? () => (isReady ? setEditingSet(set) : setPickerOpen(true)) : undefined}
+        key={set.matchId}
+        className="cursor-pointer transition-colors hover:border-primary/50"
+        onClick={() => {
+          // TEMP DIAGNOSTIC for Bug 3 (no modal on click) — remove once confirmed.
+          console.error("[ForecastPoolSection] card clicked", { label, matchId: set.matchId, playerCount: set.players.length });
+          setEditingSet(set);
+        }}
       >
         <CardContent className="p-4 space-y-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
 
-          {isReady ? (
-            teamB.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Team A
-                  </p>
-                  {teamA.map((p) => (
-                    <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
-                  ))}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Team B
-                  </p>
-                  {teamB.map((p) => (
-                    <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1 text-sm">
+          {teamB.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Team A
+                </p>
                 {teamA.map((p) => (
                   <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
                 ))}
               </div>
-            )
-          ) : isManualCard ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Plus className="h-4 w-4" />
-              Add a match
+              <div className="space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Team B
+                </p>
+                {teamB.map((p) => (
+                  <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
-              Waiting for {set.missing} more player{set.missing === 1 ? "" : "s"}
+            <div className="space-y-1 text-sm">
+              {teamA.map((p) => (
+                <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
+              ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function renderEmptyCard(set: ForecastSet) {
+    return (
+      <Card key={`empty-${set.setNumber}`} className="border-dashed">
+        <CardContent className="p-4 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {`Set ${set.setNumber}`}
+          </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            Waiting for {set.missing} more player{set.missing === 1 ? "" : "s"}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function renderAddManualCard() {
+    return (
+      <Card
+        key="add-manual"
+        className="cursor-pointer border-dashed transition-colors hover:border-primary/50"
+        onClick={() => setPickerOpen(true)}
+      >
+        <CardContent className="p-4 space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Manual</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Plus className="h-4 w-4" />
+            Add a match
+          </div>
         </CardContent>
       </Card>
     );
@@ -106,8 +130,8 @@ export function ForecastPoolSection({
         Click a ready set to edit teams.
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sets.map((set) => renderCard(set, `Set ${set.setNumber}`, false))}
-        {manualSlot && renderCard(manualSlot, "Manual", true)}
+        {sets.map((set) => (set.matchId !== null ? renderCard(set) : renderEmptyCard(set)))}
+        {!hasManualSlot && renderAddManualCard()}
       </div>
 
       {editingSet && (

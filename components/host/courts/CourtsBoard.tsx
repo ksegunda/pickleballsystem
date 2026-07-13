@@ -20,17 +20,17 @@ interface CourtsBoardProps {
   initialCourts:        CourtView[];
   initialEligibility:   MatchEligibility;
   initialForecastPool:  ForecastSet[];
-  initialManualSlot:    ForecastSet | null;
+  initialHasManualSlot: boolean;
   initialQueue:         QueueRow[];
 }
 
 export function CourtsBoard({
-  sessionId, initialCourts, initialEligibility, initialForecastPool, initialManualSlot, initialQueue,
+  sessionId, initialCourts, initialEligibility, initialForecastPool, initialHasManualSlot, initialQueue,
 }: CourtsBoardProps) {
   const [courts, setCourts]           = useState(initialCourts);
   const [eligibility, setEligibility] = useState(initialEligibility);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
-  const [manualSlot, setManualSlot]   = useState(initialManualSlot);
+  const [hasManualSlot, setHasManualSlot] = useState(initialHasManualSlot);
   const [queue, setQueue]             = useState(initialQueue);
 
   const refresh = useCallback(async () => {
@@ -38,7 +38,7 @@ export function CourtsBoard({
     setCourts(board.courts);
     setEligibility(board.eligibility);
     setForecastPool(board.forecastPool);
-    setManualSlot(board.manualSlot);
+    setHasManualSlot(board.hasManualSlot);
     setQueue(board.queue);
   }, [sessionId]);
 
@@ -100,13 +100,14 @@ export function CourtsBoard({
             court={court}
             hasEnoughPlayers={eligibility.hasEnoughPlayers}
             playersPerMatch={eligibility.playersPerMatch}
+            onStalledRefresh={refresh}
           />
         ))}
       </div>
       <ForecastPoolSection
         sessionId={sessionId}
         sets={forecastPool}
-        manualSlot={manualSlot}
+        hasManualSlot={hasManualSlot}
         queue={queue}
         playersPerMatch={eligibility.playersPerMatch}
         onChanged={refresh}

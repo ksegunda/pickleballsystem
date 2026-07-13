@@ -40,6 +40,10 @@ export interface MatchEligibility {
 export interface ForecastSet {
   matchId:   string | null;
   setNumber: number;
+  // Travels with the row regardless of its visual position — auto/manual
+  // reshuffle together in creation-time order (see Bug 5), so this is the
+  // only thing display code should use to tell them apart, never position.
+  isManual:  boolean;
   players:   Array<{ player_id: string; display_name: string; team: TeamSide }>;
   missing:   number;
 }

@@ -23,13 +23,13 @@ type LeaderboardRow = Database["public"]["Views"]["leaderboard_view"]["Row"];
 const QUEUE_PREVIEW_COUNT = 8;
 
 interface OverviewSummaryProps {
-  sessionId:           string;
-  initialCourts:       CourtView[];
-  initialForecastPool: ForecastSet[];
-  initialManualSlot:   ForecastSet | null;
-  initialQueue:        QueueRow[];
-  initialLeaderboard:  LeaderboardRow[];
-  playersPerMatch:     number;
+  sessionId:            string;
+  initialCourts:        CourtView[];
+  initialForecastPool:  ForecastSet[];
+  initialHasManualSlot: boolean;
+  initialQueue:         QueueRow[];
+  initialLeaderboard:   LeaderboardRow[];
+  playersPerMatch:      number;
 }
 
 // One realtime-backed summary for the host Overview page — condensed views
@@ -39,12 +39,12 @@ interface OverviewSummaryProps {
 // finishing (which touches matches + queue_entries + player_statistics in
 // one go) triggers one combined refresh instead of several independent ones.
 export function OverviewSummary({
-  sessionId, initialCourts, initialForecastPool, initialManualSlot, initialQueue,
+  sessionId, initialCourts, initialForecastPool, initialHasManualSlot, initialQueue,
   initialLeaderboard, playersPerMatch,
 }: OverviewSummaryProps) {
   const [courts, setCourts]             = useState(initialCourts);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
-  const [manualSlot, setManualSlot]     = useState(initialManualSlot);
+  const [hasManualSlot, setHasManualSlot] = useState(initialHasManualSlot);
   const [queue, setQueue]               = useState(initialQueue);
   const [leaderboard, setLeaderboard]   = useState(initialLeaderboard);
 
@@ -55,7 +55,7 @@ export function OverviewSummary({
     ]);
     setCourts(board.courts);
     setForecastPool(board.forecastPool);
-    setManualSlot(board.manualSlot);
+    setHasManualSlot(board.hasManualSlot);
     setQueue(board.queue);
     setLeaderboard(players);
   }, [sessionId]);
@@ -114,7 +114,7 @@ export function OverviewSummary({
       <ForecastPoolSection
         sessionId={sessionId}
         sets={forecastPool}
-        manualSlot={manualSlot}
+        hasManualSlot={hasManualSlot}
         queue={queue}
         playersPerMatch={playersPerMatch}
         onChanged={refresh}

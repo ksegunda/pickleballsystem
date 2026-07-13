@@ -46,20 +46,14 @@ export class MatchmakingService {
       hasEnoughPlayers: waitingCount >= playersPerMatch,
     };
 
-    const autoRows   = forecastRows.filter((row) => !row.is_manual);
-    const manualRow  = forecastRows.find((row) => row.is_manual) ?? null;
+    // forecast_pool_view is already ordered by created_at ASC — auto and
+    // manual rows are interleaved here in real creation order, not split
+    // apart, so a manual match takes whichever position its age earns it
+    // instead of always being pinned to the end (see Bug 5).
+    const forecastPool = this.buildForecastPool(courts.length, forecastRows, waitingCount, playersPerMatch);
+    const hasManualSlot = forecastRows.some((row) => row.is_manual);
 
-    const forecastPool = this.buildForecastPool(courts.length, autoRows, waitingCount, playersPerMatch);
-    // Always a real slot (never null) so the host always has a way to open
-    // the manual-match picker — an empty placeholder when none is active
-    // yet, the real match once one exists. Previously this was null
-    // whenever no manual match existed, which hid the "add" button
-    // entirely until one was already active.
-    const manualSlot: ForecastSet = manualRow
-      ? { matchId: manualRow.match_id, setNumber: 0, players: manualRow.players as unknown as ForecastSet["players"], missing: 0 }
-      : { matchId: null, setNumber: 0, players: [], missing: 0 };
-
-    return { courts, eligibility, forecastPool, manualSlot, queue };
+    return { courts, eligibility, forecastPool, hasManualSlot, queue };
   }
 
   async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
@@ -71,32 +65,51 @@ export class MatchmakingService {
   }
 
   /**
-   * One slot per configured court. Filled slots are real, committed sets (stable
-   * once formed); trailing empty slots are placeholders showing how many more
-   * waiting players are needed, computed the same way a per-court preview used to.
+   * Real (filled) slots first, in creation-time order — auto and manual
+   * mixed together, whichever was formed earliest renders first, so a
+   * manual match reshuffles alongside auto sets instead of always sitting
+   * last. Manual doesn't count against the per-court capacity below (it's
+   * an additional slot, not one of the courts.length auto ones) — only
+   * auto rows factor into how many trailing empty placeholders are needed.
+   * Auto cards get sequential "Set N" labels based on their position among
+   * just the numbered slots; a manual card's label ("Manual") comes from
+   * its isManual flag on the frontend, never from setNumber.
    */
   private buildForecastPool(
-    totalSlots: number,
+    totalCourtSlots: number,
     forecastRows: ForecastRow[],
     waitingCount: number,
     playersPerMatch: number
   ): ForecastSet[] {
-    const pool: ForecastSet[] = forecastRows.map((row, i) => ({
+    const filled: ForecastSet[] = forecastRows.map((row) => ({
       matchId:   row.match_id,
-      setNumber: i + 1,
+      setNumber: 0,
+      isManual:  row.is_manual,
       players:   (row.players as unknown as ForecastSet["players"]) ?? [],
       missing:   0,
     }));
 
+    const autoFilledCount = forecastRows.filter((row) => !row.is_manual).length;
     let remaining = waitingCount;
-    for (let i = pool.length; i < totalSlots; i++) {
-      pool.push({
+    const emptySlots: ForecastSet[] = [];
+    for (let i = autoFilledCount; i < totalCourtSlots; i++) {
+      emptySlots.push({
         matchId:   null,
-        setNumber: i + 1,
+        setNumber: 0,
+        isManual:  false,
         players:   [],
         missing:   Math.max(0, playersPerMatch - remaining),
       });
       remaining = Math.max(0, remaining - playersPerMatch);
+    }
+
+    const pool = [...filled, ...emptySlots];
+    let autoIndex = 0;
+    for (const set of pool) {
+      if (!set.isManual) {
+        autoIndex += 1;
+        set.setNumber = autoIndex;
+      }
     }
 
     return pool;
