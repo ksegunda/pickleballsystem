@@ -1,10 +1,6 @@
 import { z } from "zod";
 
 export const createSessionSchema = z.object({
-  club_name: z
-    .string()
-    .min(2, "Club name must be at least 2 characters")
-    .max(80, "Club name must be under 80 characters"),
   session_name: z
     .string()
     .min(2, "Session name must be at least 2 characters")
@@ -35,14 +31,11 @@ export const createSessionSchema = z.object({
     .nullable(),
   settings: z.object({
     theme:                  z.enum(["light", "dark"]).default("light"),
-    dark_mode:              z.boolean().default(false),
     language:               z.string().default("en"),
     allow_late_join:        z.boolean().default(true),
     games_to_win:           z.number().int().min(1).max(21).default(11),
     match_format:           z.enum(["singles", "doubles"]).default("doubles"),
-    weight_waiting_time:    z.number().min(0).max(1),
-    weight_games_played:    z.number().min(0).max(1),
-    weight_performance:     z.number().min(0).max(1),
+    player_level:           z.enum(["all_levels", "beginner", "intermediate", "advanced"]).default("all_levels"),
     anti_repeat_threshold:  z.number().int().min(1).max(10).default(3),
   }),
 }).refine(
@@ -51,16 +44,6 @@ export const createSessionSchema = z.object({
     return data.end_time > data.start_time;
   },
   { message: "End time must be after start time", path: ["end_time"] }
-).refine(
-  (data) => {
-    const { weight_waiting_time, weight_games_played, weight_performance } = data.settings;
-    const sum = weight_waiting_time + weight_games_played + weight_performance;
-    return Math.abs(sum - 1.0) < 0.01;
-  },
-  {
-    message: "Wait Time, Games Played, and Performance weights must add up to 1.0",
-    path: ["settings", "weight_performance"],
-  }
 );
 
 export type CreateSessionSchema = z.infer<typeof createSessionSchema>;

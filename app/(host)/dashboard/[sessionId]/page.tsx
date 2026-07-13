@@ -9,12 +9,11 @@ import { Button } from "@/components/ui/button";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { QRCodeDisplay } from "@/components/host/session/QRCodeDisplay";
-import { JoinCodeDisplay } from "@/components/host/session/JoinCodeDisplay";
 import { StartSessionButton } from "@/components/host/session/StartSessionButton";
 import { EndSessionButton } from "@/components/host/session/EndSessionButton";
 import { DashboardStats } from "@/components/host/session/DashboardStats";
 import { OverviewSummary } from "@/components/host/session/OverviewSummary";
-import { formatDate, formatTime } from "@/lib/utils/format";
+import { formatDate, formatTime, formatPlayerLevel } from "@/lib/utils/format";
 import { ROUTES } from "@/lib/constants/routes";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -30,10 +29,11 @@ export default async function DashboardPage({ params }: PageProps) {
   const sessionService = new SessionService(supabase);
   const playerService  = new PlayerService(supabase);
 
-  const [session, summary, players] = await Promise.all([
+  const [session, summary, players, settings] = await Promise.all([
     sessionService.getSession(sessionId),
     sessionService.getSessionSummary(sessionId).catch(() => null),
     playerService.getSessionPlayers(sessionId),
+    sessionService.getSettings(sessionId).catch(() => null),
   ]);
 
   const isActive  = session.status === "active";
@@ -65,6 +65,7 @@ export default async function DashboardPage({ params }: PageProps) {
           <p className="text-muted-foreground">
             {session.club_name} · {formatDate(session.session_date)} · {formatTime(session.start_time)}
             {session.end_time ? ` – ${formatTime(session.end_time)}` : ""}
+            {settings && ` · ${formatPlayerLevel(settings.player_level)}`}
           </p>
         </div>
 
@@ -94,14 +95,11 @@ export default async function DashboardPage({ params }: PageProps) {
         playersFallback={players.length}
       />
 
-      {/* QR code + join code — always shown together so the code stays a
-          working fallback even if QR generation ever fails again */}
+      {/* QR code only, per product decision — join code intentionally
+          dropped from this view (was previously kept as a fallback path) */}
       <div className="flex flex-wrap gap-4">
         <div className="w-full max-w-sm sm:w-auto">
           <QRCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
-        </div>
-        <div className="w-full max-w-sm sm:w-auto">
-          <JoinCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
         </div>
       </div>
 

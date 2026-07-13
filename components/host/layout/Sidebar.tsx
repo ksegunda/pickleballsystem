@@ -54,11 +54,16 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5 border-b border-border">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
-          <Zap className="h-4 w-4 text-white" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
+          {host?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <Zap className="h-4 w-4 text-white" />
+          )}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground truncate">OpenPlay</p>
+          <p className="text-sm font-bold text-foreground truncate">{host?.club_name ?? "OpenPlay"}</p>
           <p className="text-xs text-muted-foreground truncate">{sessionName}</p>
         </div>
       </div>
@@ -104,7 +109,7 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
       <div className="p-3">
         <Link href={ROUTES.SESSIONS} className="nav-item">
           <LayoutDashboard className="h-4 w-4 shrink-0" />
-          <span>All Sessions</span>
+          <span>My Club</span>
         </Link>
       </div>
 

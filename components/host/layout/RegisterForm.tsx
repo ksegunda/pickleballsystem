@@ -85,14 +85,15 @@ export function RegisterForm() {
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="club_name">
-                  Club Name <span className="text-muted-foreground">(optional)</span>
-                </Label>
+                <Label htmlFor="club_name">Club Name</Label>
                 <Input
                   id="club_name"
                   placeholder="Pickleball Club"
                   {...register("club_name")}
                 />
+                {errors.club_name && (
+                  <p className="text-xs text-destructive">{errors.club_name.message}</p>
+                )}
               </div>
             </div>
 

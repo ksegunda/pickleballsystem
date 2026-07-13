@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCourtsBoardAction } from "@/actions/match.actions";
 import { getLeaderboardAction } from "@/actions/player.actions";
+import { useConnectionStatus } from "@/lib/hooks/useConnectionStatus";
 import { CourtSummaryCard } from "@/components/host/courts/CourtSummaryCard";
 import { ForecastPoolSection } from "@/components/host/courts/ForecastPoolSection";
 import { QueueEntryRow } from "@/components/host/queue/QueueEntryRow";
@@ -74,6 +75,30 @@ export function OverviewSummary({
 
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, refresh]);
+
+  // Safety net for a late/dropped realtime push — see CourtsBoard.tsx for
+  // the matching logic and Bug 1's findings.
+  const connectionStatus = useConnectionStatus();
+  const wasOffline = useRef(false);
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") refresh();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [refresh]);
+
+  useEffect(() => {
+    if (connectionStatus === "offline") {
+      wasOffline.current = true;
+      return;
+    }
+    if (wasOffline.current) {
+      wasOffline.current = false;
+      refresh();
+    }
+  }, [connectionStatus, refresh]);
 
   return (
     <div className="space-y-6">

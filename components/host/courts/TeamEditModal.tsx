@@ -83,7 +83,8 @@ export function TeamEditModal({ sessionId, set, onClose, onSaved }: TeamEditModa
 
   const teamA = set.players.filter((p) => assignments[p.player_id] === "team_a");
   const teamB = set.players.filter((p) => assignments[p.player_id] === "team_b");
-  const canSave = teamA.length > 0 && teamB.length > 0;
+  const isBalanced = teamA.length === teamB.length;
+  const canSave = teamA.length > 0 && teamB.length > 0 && isBalanced;
 
   function handleDragEnd(event: DragEndEvent) {
     const zone = event.over?.id;
@@ -130,6 +131,10 @@ export function TeamEditModal({ sessionId, set, onClose, onSaved }: TeamEditModa
             <DropZone id="team_b" label="Team B" players={teamB} />
           </div>
         </DndContext>
+
+        {!isBalanced && (
+          <p className="text-xs text-destructive">Teams must have an equal number of players.</p>
+        )}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>

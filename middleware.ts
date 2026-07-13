@@ -2,8 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 
-const HOST_ROUTES = ["/sessions", "/dashboard"];
-const AUTH_ROUTES = ["/login", "/register"];
+const HOST_ROUTES  = ["/sessions", "/dashboard"];
+const ADMIN_ROUTES = ["/admin"];
+const AUTH_ROUTES  = ["/login", "/register"];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -37,11 +38,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/sessions", request.url));
   }
 
-  const isHostRoute = HOST_ROUTES.some((r) => pathname.startsWith(r));
-  if (isHostRoute && !user) {
+  const isHostRoute  = HOST_ROUTES.some((r) => pathname.startsWith(r));
+  const isAdminRoute = ADMIN_ROUTES.some((r) => pathname.startsWith(r));
+
+  if ((isHostRoute || isAdminRoute) && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Suspension only gates the host area — /admin's own layout independently
+  // re-verifies platform_admins membership, a separate check entirely.
+  if (isHostRoute && user) {
+    const { data: host } = await supabase
+      .from("hosts")
+      .select("is_suspended")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (host?.is_suspended) {
+      return NextResponse.redirect(new URL("/suspended", request.url));
+    }
   }
 
   return supabaseResponse;

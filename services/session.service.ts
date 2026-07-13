@@ -1,22 +1,45 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import type { CreateSessionInput } from "@/types/session.types";
 import { SessionRepository } from "@/repositories/session.repository";
+import { SubscriptionRepository } from "@/repositories/subscription.repository";
 import { generateJoinCode } from "@/lib/utils/generate-code";
 
 export class SessionService {
   private repo: SessionRepository;
+  private subscriptionRepo: SubscriptionRepository;
 
   constructor(private readonly db: TypedSupabaseClient) {
     this.repo = new SessionRepository(db);
+    this.subscriptionRepo = new SubscriptionRepository(db);
   }
 
   async createSession(hostId: string, input: CreateSessionInput) {
+    const { allowed, limit, used } = await this.subscriptionRepo.isUnderFreeLimitOrUnlimited(hostId);
+    if (!allowed) {
+      throw new Error(
+        `You've reached your Free plan's limit of ${limit} sessions this month (${used}/${limit} used). Upgrade to Monthly or Lifetime for unlimited sessions.`
+      );
+    }
+
     const join_code = generateJoinCode();
+
+    // club_name lives on the host profile now, not the creation form — a
+    // point-in-time copy onto the session row (not a live reference), so a
+    // later profile edit doesn't retroactively rename past sessions' stored
+    // club name.
+    const { data: host, error: hostError } = await this.db
+      .from("hosts")
+      .select("club_name")
+      .eq("id", hostId)
+      .single();
+    if (hostError || !host?.club_name) {
+      throw new Error("Your host profile is missing a club name. Please set one in your profile before creating a session.");
+    }
 
     // Create the session
     const session = await this.repo.create({
       host_id:          hostId,
-      club_name:        input.club_name,
+      club_name:        host.club_name,
       session_name:     input.session_name,
       session_date:     input.session_date,
       start_time:       input.start_time,
@@ -33,14 +56,17 @@ export class SessionService {
     try {
       await this.repo.createSettings(session.id, {
         theme:                  input.settings?.theme ?? "light",
-        dark_mode:              input.settings?.dark_mode ?? false,
         language:               input.settings?.language ?? "en",
         allow_late_join:        input.settings?.allow_late_join ?? true,
         games_to_win:           input.settings?.games_to_win ?? 11,
         match_format:           input.settings?.match_format ?? "doubles",
-        weight_waiting_time:    input.settings?.weight_waiting_time ?? 0.40,
-        weight_games_played:    input.settings?.weight_games_played ?? 0.35,
-        weight_performance:     input.settings?.weight_performance ?? 0.25,
+        player_level:           input.settings?.player_level ?? "all_levels",
+        // No longer host-configurable — the fairness algorithm keeps
+        // running exactly as before, just always on these defaults now
+        // instead of taking weights from the creation form.
+        weight_waiting_time:    0.40,
+        weight_games_played:    0.35,
+        weight_performance:     0.25,
         anti_repeat_threshold:  input.settings?.anti_repeat_threshold ?? 3,
       });
     } catch (err) {
@@ -81,5 +107,23 @@ export class SessionService {
 
   async getSession(sessionId: string) {
     return this.repo.findById(sessionId);
+  }
+
+  async getSettings(sessionId: string) {
+    return this.repo.getSettings(sessionId);
+  }
+
+  async getSubscription(hostId: string) {
+    return this.subscriptionRepo.getByHostId(hostId);
+  }
+
+  // Everything the /sessions plan badge needs in one call — plan/status
+  // plus, for a free host, how many of their monthly 3 they've used.
+  async getSubscriptionUsage(hostId: string) {
+    const [subscription, limitCheck] = await Promise.all([
+      this.subscriptionRepo.getByHostId(hostId),
+      this.subscriptionRepo.isUnderFreeLimitOrUnlimited(hostId),
+    ]);
+    return { ...subscription, used: limitCheck.used, limit: limitCheck.limit };
   }
 }

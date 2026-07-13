@@ -208,6 +208,10 @@ export class PlayerService {
     return this.playerRepo.findBySession(sessionId);
   }
 
+  async getTotalPlayersServed(sessionIds: string[]) {
+    return this.playerRepo.countAcrossSessions(sessionIds);
+  }
+
   async getLeaderboard(sessionId: string) {
     return this.playerRepo.getLeaderboard(sessionId);
   }

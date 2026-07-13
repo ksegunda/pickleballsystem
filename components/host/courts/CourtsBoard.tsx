@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCourtsBoardAction } from "@/actions/match.actions";
+import { useConnectionStatus } from "@/lib/hooks/useConnectionStatus";
 import { CourtCard } from "./CourtCard";
 import { ForecastPoolSection } from "./ForecastPoolSection";
 import { QueueEntryRow } from "@/components/host/queue/QueueEntryRow";
@@ -56,6 +57,32 @@ export function CourtsBoard({
 
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, refresh]);
+
+  // Safety net for a realtime push that's late or silently dropped (see Bug 1
+  // findings — CourtCard's optimistic update covers the moment of the click,
+  // this covers everything after): refetch whenever the tab regains focus, or
+  // when the connection flips back online after being down.
+  const connectionStatus = useConnectionStatus();
+  const wasOffline = useRef(false);
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") refresh();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [refresh]);
+
+  useEffect(() => {
+    if (connectionStatus === "offline") {
+      wasOffline.current = true;
+      return;
+    }
+    if (wasOffline.current) {
+      wasOffline.current = false;
+      refresh();
+    }
+  }, [connectionStatus, refresh]);
 
   return (
     <div className="space-y-4">

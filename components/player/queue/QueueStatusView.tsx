@@ -229,8 +229,14 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
     return () => { supabase.removeChannel(channel); };
   }, [session.id, loadPlayer, identity?.player_id]);
 
-  const position = player?.queue_position ?? null;
-  const waitSecs = useElapsedSeconds(player?.queue_entry?.entered_queue, position !== null);
+  // A resting player's queue_entries row is excluded from
+  // recalculate_queue_positions (only 'waiting' rows get updated), so
+  // `queue_position` freezes at its stale pre-rest value rather than
+  // clearing — treat resting as its own state rather than trusting that
+  // number, and don't let the wait counter keep ticking against it.
+  const isResting = player?.status === "resting";
+  const position  = isResting ? null : player?.queue_position ?? null;
+  const waitSecs  = useElapsedSeconds(player?.queue_entry?.entered_queue, position !== null && !isResting);
   const syncSecs = useElapsedSeconds(lastSyncedAt?.toISOString(), lastSyncedAt !== null);
 
   if (loading) {
@@ -348,7 +354,17 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
             {/* Main queue position badge */}
             <div className="flex flex-col items-center py-6">
               <AnimatePresence mode="wait">
-                {position !== null ? (
+                {isResting ? (
+                  <motion.div key="resting" className="flex flex-col items-center gap-3">
+                    <div className="flex h-44 w-44 items-center justify-center rounded-full bg-muted shadow-card">
+                      <Coffee className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-semibold text-foreground">You&apos;re resting</p>
+                      <p className="text-sm text-muted-foreground">Tap &quot;I&apos;m Back&quot; when you&apos;re ready to queue again.</p>
+                    </div>
+                  </motion.div>
+                ) : position !== null ? (
                   <motion.div
                     key={`pos-${position}`}
                     initial={{ scale: 0.8, opacity: 0 }}

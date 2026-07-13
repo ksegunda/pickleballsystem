@@ -22,9 +22,7 @@ export const registerSchema = z.object({
   club_name: z
     .string()
     .min(2, "Club name must be at least 2 characters")
-    .max(80, "Club name must be under 80 characters")
-    .optional()
-    .or(z.literal("")),
+    .max(80, "Club name must be under 80 characters"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")

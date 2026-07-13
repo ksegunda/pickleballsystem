@@ -28,6 +28,15 @@ const withPWA = withPWAInit({
   dest:    "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  // "/" is a pure auth-redirect decision (→ /sessions or /login depending on
+  // who's logged in right now), not real content — next-pwa's defaults
+  // (cacheStartUrl/dynamicStartUrl) cache whichever destination it resolved
+  // to under a NetworkFirst strategy, which can replay a stale redirect
+  // (e.g. an old, now-logged-out session's "/sessions") on a slow/flaky
+  // connection instead of hitting the server for a fresh auth check.
+  // Explicitly disabled — never cache an auth-dependent redirect.
+  cacheStartUrl:    false,
+  dynamicStartUrl:  false,
 });
 
 export default withPWA(nextConfig);

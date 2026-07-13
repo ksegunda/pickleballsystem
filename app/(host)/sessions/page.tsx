@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Calendar, Users, Zap } from "lucide-react";
+import { Plus, Calendar, Users, Zap, LogOut, Trophy, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SessionService } from "@/services/session.service";
-import { getHostAction } from "@/actions/auth.actions";
+import { PlayerService } from "@/services/player.service";
+import { getHostAction, logoutAction } from "@/actions/auth.actions";
 import type { Session } from "@/types/session.types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
-import { formatDate } from "@/lib/utils/format";
+import { formatDate, formatSubscriptionPlan } from "@/lib/utils/format";
 import { ROUTES } from "@/lib/constants/routes";
 
 export const metadata: Metadata = { title: "Sessions" };
@@ -18,6 +19,12 @@ export default async function SessionsPage() {
   const [supabase, host] = await Promise.all([createClient(), getHostAction()]);
   const service = new SessionService(supabase);
   const sessions: Session[] = host ? await service.getHostSessions(host.id) : [];
+
+  const playerService = new PlayerService(supabase);
+  const totalPlayersServed = sessions.length > 0
+    ? await playerService.getTotalPlayersServed(sessions.map((s) => s.id))
+    : 0;
+  const subscription = host ? await service.getSubscriptionUsage(host.id) : null;
 
   const active   = sessions.filter((s) => s.status === "active");
   const pending  = sessions.filter((s) => s.status === "pending");
@@ -29,8 +36,13 @@ export default async function SessionsPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
+              {host?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Zap className="h-4 w-4 text-white" />
+              )}
             </div>
             <div>
               <p className="text-sm font-bold">OpenPlay</p>
@@ -39,32 +51,57 @@ export default async function SessionsPage() {
               </p>
             </div>
           </div>
-          <Button asChild size="default">
-            <Link href={ROUTES.NEW_SESSION}>
-              <Plus className="h-4 w-4" />
-              New Session
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild size="default">
+              <Link href={ROUTES.NEW_SESSION}>
+                <Plus className="h-4 w-4" />
+                New Session
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" title="Settings" asChild>
+              <Link href={ROUTES.SETTINGS}>
+                <Settings className="h-4 w-4" />
+              </Link>
+            </Button>
+            <form action={logoutAction}>
+              <Button type="submit" variant="ghost" size="icon" title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-8">
         {/* Welcome banner */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Welcome back, {host?.name?.split(" ")[0] ?? "Host"}
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage your open play sessions and monitor player activity.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {host?.club_name || host?.name ? `Welcome back, ${host.club_name || host.name}` : "Welcome back!"}
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              Manage your open play sessions and monitor player activity.
+            </p>
+          </div>
+          {subscription && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
+              {formatSubscriptionPlan(subscription.plan_type)}
+              {subscription.plan_type === "free" && subscription.limit !== null && (
+                <span className="font-normal text-primary/70">
+                  · {subscription.used}/{subscription.limit} this month
+                </span>
+              )}
+            </span>
+          )}
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: "Total Sessions", value: sessions.length, icon: Calendar },
-            { label: "Active Now",     value: active.length,   icon: Zap },
-            { label: "Players Today",  value: "—",             icon: Users },
+            { label: "Total Sessions",        value: sessions.length,      icon: Calendar },
+            { label: "Active Now",            value: active.length,        icon: Zap },
+            { label: "Players Today",         value: "—",                  icon: Users },
+            { label: "Total Players Served",  value: totalPlayersServed,   icon: Trophy },
           ].map((stat) => (
             <Card key={stat.label} className="stat-card">
               <CardContent className="p-0 flex items-center gap-4">

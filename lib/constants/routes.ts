@@ -7,6 +7,7 @@ export const ROUTES = {
   // Host
   SESSIONS:   "/sessions",
   NEW_SESSION: "/sessions/new",
+  SETTINGS:   "/sessions/settings",
   DASHBOARD:  (sessionId: string) => `/dashboard/${sessionId}`,
   COURTS:     (sessionId: string) => `/dashboard/${sessionId}/courts`,
   MATCHES:    (sessionId: string) => `/dashboard/${sessionId}/matches`,

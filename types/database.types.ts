@@ -16,28 +16,67 @@ export type MatchStatus   = "pending" | "in_progress" | "completed" | "cancelled
 export type TeamSide      = "team_a" | "team_b";
 export type MatchResult   = "win" | "loss";
 export type QueueStatus   = "waiting" | "matched" | "removed" | "resting";
+export type PlayerLevel   = "all_levels" | "beginner" | "intermediate" | "advanced";
+export type SubscriptionPlan   = "free" | "monthly" | "lifetime";
+export type SubscriptionStatus = "active" | "expired" | "cancelled";
 
 export interface Database {
   public: {
     Tables: {
       hosts: {
         Row: {
+          id:           string;
+          email:        string;
+          name:         string;
+          club_name:    string | null;
+          avatar_url:   string | null;
+          is_suspended: boolean;
+          created_at:   string;
+        };
+        Insert: {
+          id?:           string;
+          email:         string;
+          name:          string;
+          club_name?:    string | null;
+          avatar_url?:   string | null;
+          is_suspended?: boolean;
+          created_at?:   string;
+        };
+        Update: Partial<Database["public"]["Tables"]["hosts"]["Insert"]>;
+        Relationships: [];
+      };
+      platform_admins: {
+        Row: {
           id:         string;
-          email:      string;
-          name:       string;
-          club_name:  string | null;
-          avatar_url: string | null;
           created_at: string;
         };
         Insert: {
-          id?:        string;
-          email:      string;
-          name:       string;
-          club_name?: string | null;
-          avatar_url?: string | null;
+          id:          string;
           created_at?: string;
         };
-        Update: Partial<Database["public"]["Tables"]["hosts"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["platform_admins"]["Insert"]>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          id:          string;
+          host_id:     string;
+          plan_type:   SubscriptionPlan;
+          status:      SubscriptionStatus;
+          started_at:  string;
+          expires_at:  string | null;
+          updated_at:  string;
+        };
+        Insert: {
+          id?:         string;
+          host_id:     string;
+          plan_type?:  SubscriptionPlan;
+          status?:     SubscriptionStatus;
+          started_at?: string;
+          expires_at?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["subscriptions"]["Insert"]>;
         Relationships: [];
       };
       sessions: {
@@ -92,6 +131,7 @@ export interface Database {
           weight_games_played:   number;
           weight_performance:    number;
           anti_repeat_threshold: number;
+          player_level:          PlayerLevel;
           updated_at:            string;
         };
         Insert: {
@@ -107,6 +147,7 @@ export interface Database {
           weight_games_played?:   number;
           weight_performance?:    number;
           anti_repeat_threshold?: number;
+          player_level?:          PlayerLevel;
           updated_at?:            string;
         };
         Update: Partial<Database["public"]["Tables"]["session_settings"]["Insert"]>;
@@ -427,6 +468,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      count_sessions_this_month: {
+        Args: { p_host_id: string };
+        Returns: number;
+      };
       calculate_priority_score: {
         Args: { p_player_id: string; p_session_id: string };
         Returns: number;
@@ -500,6 +545,9 @@ export interface Database {
       team_side:      TeamSide;
       match_result:   MatchResult;
       queue_entry_status: QueueStatus;
+      player_level:       PlayerLevel;
+      subscription_plan:   SubscriptionPlan;
+      subscription_status: SubscriptionStatus;
     };
     CompositeTypes: {
       [_ in never]: never;

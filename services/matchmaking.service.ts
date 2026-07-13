@@ -50,9 +50,14 @@ export class MatchmakingService {
     const manualRow  = forecastRows.find((row) => row.is_manual) ?? null;
 
     const forecastPool = this.buildForecastPool(courts.length, autoRows, waitingCount, playersPerMatch);
-    const manualSlot: ForecastSet | null = manualRow
+    // Always a real slot (never null) so the host always has a way to open
+    // the manual-match picker — an empty placeholder when none is active
+    // yet, the real match once one exists. Previously this was null
+    // whenever no manual match existed, which hid the "add" button
+    // entirely until one was already active.
+    const manualSlot: ForecastSet = manualRow
       ? { matchId: manualRow.match_id, setNumber: 0, players: manualRow.players as unknown as ForecastSet["players"], missing: 0 }
-      : null;
+      : { matchId: null, setNumber: 0, players: [], missing: 0 };
 
     return { courts, eligibility, forecastPool, manualSlot, queue };
   }

@@ -6,21 +6,23 @@ import { motion } from "framer-motion";
 import { User, ArrowRight, Users, Calendar, Zap } from "lucide-react";
 import { generateDeviceToken } from "@/lib/utils/generate-code";
 import { getStoredPlayerIdentity, setStoredPlayerIdentity } from "@/lib/utils/player-identity";
-import { formatDate, formatTime } from "@/lib/utils/format";
+import { formatDate, formatTime, formatPlayerLevel } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ROUTES } from "@/lib/constants/routes";
 import type { Session } from "@/types/session.types";
+import type { PlayerLevel } from "@/types/database.types";
 
 const DEVICE_TOKEN_KEY = "openplay_device_token";
 
 interface JoinFormProps {
   session: Session;
+  playerLevel?: PlayerLevel | null;
 }
 
-export function JoinForm({ session }: JoinFormProps) {
+export function JoinForm({ session, playerLevel }: JoinFormProps) {
   const router = useRouter();
   const [name, setName]         = useState("");
   const [error, setError]       = useState<string | null>(null);
@@ -106,6 +108,11 @@ export function JoinForm({ session }: JoinFormProps) {
             {session.end_time ? ` – ${formatTime(session.end_time)}` : ""}
             {" "}&middot; {session.number_of_courts} court{session.number_of_courts !== 1 ? "s" : ""}
           </p>
+          {playerLevel && (
+            <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+              {formatPlayerLevel(playerLevel)}
+            </span>
+          )}
         </CardContent>
       </Card>
 

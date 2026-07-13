@@ -118,6 +118,19 @@ export class PlayerRepository {
     return data ?? false;
   }
 
+  // Total player rows (every join, across every one of the given sessions —
+  // there's no persistent cross-session player identity in this schema, so
+  // this is a count of participations served, not unique individuals).
+  async countAcrossSessions(sessionIds: string[]): Promise<number> {
+    if (sessionIds.length === 0) return 0;
+    const { count, error } = await this.db
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .in("session_id", sessionIds);
+    if (error) throw error;
+    return count ?? 0;
+  }
+
   async getLeaderboard(sessionId: string) {
     const { data, error } = await this.db
       .from("leaderboard_view")

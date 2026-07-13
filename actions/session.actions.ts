@@ -32,6 +32,7 @@ export async function createSessionAction(
     revalidatePath("/sessions");
     return { success: true, data: session };
   } catch (err) {
+    console.error("[createSessionAction]", err);
     const msg = err instanceof Error ? err.message : "Failed to create session.";
     return { success: false, error: msg };
   }

@@ -1,4 +1,26 @@
 import { formatDistanceToNow, format, parseISO } from "date-fns";
+import type { PlayerLevel, SubscriptionPlan } from "@/types/database.types";
+
+const PLAYER_LEVEL_LABELS: Record<PlayerLevel, string> = {
+  all_levels:   "All Levels",
+  beginner:     "Beginner",
+  intermediate: "Intermediate",
+  advanced:     "Advanced",
+};
+
+export function formatPlayerLevel(level: PlayerLevel): string {
+  return PLAYER_LEVEL_LABELS[level];
+}
+
+const SUBSCRIPTION_PLAN_LABELS: Record<SubscriptionPlan, string> = {
+  free:     "Free Plan",
+  monthly:  "Monthly Plan",
+  lifetime: "Lifetime Plan",
+};
+
+export function formatSubscriptionPlan(plan: SubscriptionPlan): string {
+  return SUBSCRIPTION_PLAN_LABELS[plan];
+}
 
 export function formatWaitTime(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Zap, Play, Trophy } from "lucide-react";
@@ -31,9 +31,27 @@ type LoadingAction = "generate" | "start" | "team_a" | "team_b" | null;
 export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch }: CourtCardProps) {
   const [loadingAction, setLoadingAction] = useState<LoadingAction>(null);
 
-  const isFree       = court.match_id === null && court.court_status !== "maintenance";
-  const isPending    = court.match_status === "pending";
-  const isInProgress = court.match_status === "in_progress";
+  // Bridges the gap between "the action resolved" and "the parent's realtime
+  // refresh actually delivered fresh props" — the card would otherwise sit
+  // showing stale pending/in-progress state until that push arrives (which
+  // can lag on a flaky connection), even though the write already succeeded.
+  // Each ref clears itself the moment real prop data confirms the change,
+  // so there's no risk of it sticking around past its usefulness.
+  const [optimisticStartedAt, setOptimisticStartedAt] = useState<string | null>(null);
+  const [justFinished, setJustFinished]               = useState(false);
+
+  useEffect(() => {
+    if (court.started_at) setOptimisticStartedAt(null);
+  }, [court.started_at]);
+
+  useEffect(() => {
+    setJustFinished(false);
+  }, [court.match_id, court.match_status]);
+
+  const isFinishing  = justFinished;
+  const isFree       = !isFinishing && court.match_id === null && court.court_status !== "maintenance";
+  const isPending    = !isFinishing && optimisticStartedAt === null && court.match_status === "pending";
+  const isInProgress = !isFinishing && (optimisticStartedAt !== null || court.match_status === "in_progress");
   const players       = (court.players as unknown as CourtMatchPlayer[]) ?? [];
   const teamA          = players.filter((p) => p.team === "team_a");
   const teamB          = players.filter((p) => p.team === "team_b");
@@ -71,6 +89,7 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch 
         toast.error(result.error);
         return;
       }
+      setOptimisticStartedAt(new Date().toISOString());
       toast.success(`${court.court_name} is live!`);
     } catch {
       toast.error("Failed to start match.");
@@ -88,6 +107,7 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch 
         toast.error(result.error);
         return;
       }
+      setJustFinished(true);
       toast.success(
         `${winnerTeam === "team_a" ? "Team A" : "Team B"} won! Players are back in queue.`
       );
@@ -103,10 +123,12 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch 
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-foreground">{court.court_name}</h3>
-          {isFree ? (
+          {isFinishing ? (
+            <span className="text-xs font-medium text-muted-foreground">Finishing…</span>
+          ) : isFree ? (
             <CourtStatusBadge status="available" />
           ) : isInProgress ? (
-            <TimerDisplay startedAt={court.started_at} size="sm" />
+            <TimerDisplay startedAt={court.started_at ?? optimisticStartedAt} size="sm" />
           ) : (
             <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
               Ready
@@ -115,7 +137,18 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch 
         </div>
 
         <AnimatePresence mode="wait">
-          {isFree ? (
+          {isFinishing ? (
+            <motion.div
+              key="finishing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2 text-sm text-muted-foreground py-2"
+            >
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Wrapping up this match…
+            </motion.div>
+          ) : isFree ? (
             <motion.div
               key="available"
               initial={{ opacity: 0 }}

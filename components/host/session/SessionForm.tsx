@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,19 +53,33 @@ export function SessionForm() {
       number_of_courts: 2,
       settings: {
         allow_late_join: true,
-        dark_mode:       false,
         match_format:    "doubles",
         games_to_win:    11,
+        player_level:    "all_levels",
       },
     },
   });
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = form;
+  const { register, handleSubmit, formState: { errors }, setValue, watch, trigger, getValues } = form;
+
+  const startTime = watch("start_time");
+  // Only times strictly after the chosen start time are valid end times.
+  const endTimeOptions = TIME_OPTIONS.filter((opt) => opt.value > startTime);
+
+  // If start time moves past the currently-selected end time, that
+  // selection is no longer valid — clear it rather than leave a stale,
+  // now-invalid value sitting in the field.
+  useEffect(() => {
+    const currentEnd = getValues("end_time");
+    if (currentEnd && currentEnd <= startTime) {
+      setValue("end_time", "", { shouldValidate: true });
+    }
+  }, [startTime, getValues, setValue]);
 
   async function goNext() {
     if (isTransitioning) return;
     const fields: Record<number, (keyof CreateSessionSchema)[]> = {
-      0: ["club_name", "session_name", "session_date", "start_time", "end_time"],
+      0: ["session_name", "session_date", "start_time", "end_time"],
       1: ["number_of_courts"],
     };
     const valid = await trigger(fields[step] ?? []);
@@ -105,7 +119,6 @@ export function SessionForm() {
   }
 
   const allowLateJoin = watch("settings.allow_late_join");
-  const darkMode      = watch("settings.dark_mode");
 
   return (
     <div className="space-y-6">
@@ -149,11 +162,6 @@ export function SessionForm() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="club_name">Club Name</Label>
-                    <Input id="club_name" placeholder="Pickled Courts CC" {...register("club_name")} />
-                    {errors.club_name && <p className="text-xs text-destructive">{errors.club_name.message}</p>}
-                  </div>
-                  <div className="space-y-1.5">
                     <Label htmlFor="session_name">Session Name</Label>
                     <Input id="session_name" placeholder="Friday Open Play" {...register("session_name")} />
                     {errors.session_name && <p className="text-xs text-destructive">{errors.session_name.message}</p>}
@@ -193,7 +201,7 @@ export function SessionForm() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={NO_END_TIME}>No end time</SelectItem>
-                          {TIME_OPTIONS.map((opt) => (
+                          {endTimeOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
@@ -254,7 +262,7 @@ export function SessionForm() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="doubles">Doubles (2v2)</SelectItem>
-                        <SelectItem value="singles">Singles (1v1)</SelectItem>
+                        <SelectItem value="singles" disabled>Singles (1v1) — Under maintenance</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -304,49 +312,28 @@ export function SessionForm() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Dark Mode</p>
-                      <p className="text-xs text-muted-foreground">Default theme for player screens</p>
-                    </div>
-                    <Switch
-                      checked={darkMode}
-                      onCheckedChange={(v) => setValue("settings.dark_mode", v)}
-                    />
-                  </div>
 
-                  <Separator />
-
-                  <div className="rounded-xl bg-muted/50 p-4 space-y-3">
-                    <p className="text-sm font-semibold">Fairness Algorithm Weights</p>
+                  <div className="space-y-1.5">
+                    <Label>Player Level</Label>
                     <p className="text-xs text-muted-foreground">
-                      Controls how the matchmaking algorithm prioritizes players. Weights must sum to 1.0.
+                      Shown to players before they join, so they know what kind of game to expect.
                     </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: "Wait Time",    field: "settings.weight_waiting_time" as const, default: "0.40" },
-                        { label: "Games Played", field: "settings.weight_games_played" as const, default: "0.35" },
-                        { label: "Performance",  field: "settings.weight_performance"  as const, default: "0.25" },
-                      ].map((w) => (
-                        <div key={w.field} className="space-y-1">
-                          <Label className="text-xs">{w.label}</Label>
-                          <Input
-                            type="number"
-                            step="0.05"
-                            min="0"
-                            max="1"
-                            defaultValue={w.default}
-                            className="h-9 text-sm"
-                            {...register(w.field, { valueAsNumber: true })}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {errors.settings?.weight_performance && (
-                      <p className="text-xs text-destructive">
-                        {errors.settings.weight_performance.message}
-                      </p>
-                    )}
+                    <Select
+                      defaultValue="all_levels"
+                      onValueChange={(v) =>
+                        setValue("settings.player_level", v as CreateSessionSchema["settings"]["player_level"])
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_levels">All Levels</SelectItem>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>
