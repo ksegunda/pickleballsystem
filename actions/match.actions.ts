@@ -18,8 +18,63 @@ export async function getCourtsBoardAction(sessionId: string) {
       courts: [],
       eligibility: { playersPerMatch: PLAYERS_PER_MATCH, waitingCount: 0, hasEnoughPlayers: false },
       forecastPool: [],
+      manualSlot: null,
       queue: [],
     };
+  }
+}
+
+export async function updateMatchTeamsAction(
+  sessionId: string,
+  matchId:   string,
+  teamA:     string[],
+  teamB:     string[]
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    const ok = await service.updateMatchTeams(matchId, teamA, teamB);
+
+    if (!ok) {
+      return { success: false, error: "This match already moved on — please refresh and try again." };
+    }
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to update teams.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function createManualMatchAction(
+  sessionId: string,
+  teamA:     string[],
+  teamB:     string[]
+): Promise<ActionResult<{ matchId: string }>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    const matchId = await service.createManualMatch(sessionId, teamA, teamB);
+
+    if (!matchId) {
+      return {
+        success: false,
+        error: "Could not create this match — one of the selected players may no longer be waiting, or a manual match is already active.",
+      };
+    }
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: { matchId } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to create the match.";
+    return { success: false, error: msg };
   }
 }
 

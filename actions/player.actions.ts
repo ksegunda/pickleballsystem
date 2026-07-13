@@ -57,6 +57,61 @@ export async function joinSessionByIdAction(
   }
 }
 
+export async function leaveSessionAction(
+  playerId:    string,
+  deviceToken: string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const service  = new PlayerService(supabase);
+    const ok = await service.leaveSession(playerId, deviceToken);
+    if (!ok) return { success: false, error: "Could not leave the session. Please try again." };
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Could not leave the session.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function setRestingAction(
+  playerId:    string,
+  resting:     boolean,
+  deviceToken: string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const service  = new PlayerService(supabase);
+    const ok = await service.setResting(playerId, resting, deviceToken);
+    if (!ok) {
+      return {
+        success: false,
+        error: resting ? "Could not update your status." : "Could not rejoin the queue.",
+      };
+    }
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Could not update your status.";
+    return { success: false, error: msg };
+  }
+}
+
+// Host-initiated — no device token, authorized instead via the calling
+// host's own session (checked inside fn_authorize_player_action).
+export async function removePlayerAction(
+  playerId: string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const service  = new PlayerService(supabase);
+    const ok = await service.leaveSession(playerId);
+    if (!ok) return { success: false, error: "Could not remove this player." };
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Could not remove this player.";
+    return { success: false, error: msg };
+  }
+}
+
 export async function getPlayerContextAction(
   playerId:  string,
   sessionId: string

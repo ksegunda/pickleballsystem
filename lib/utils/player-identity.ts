@@ -11,3 +11,11 @@ export function getStoredPlayerIdentity(sessionId: string): PlayerIdentity | nul
     return null;
   }
 }
+
+export function clearStoredPlayerIdentity(sessionId: string): void {
+  localStorage.removeItem(PLAYER_KEY(sessionId));
+}
+
+export function setStoredPlayerIdentity(sessionId: string, identity: PlayerIdentity): void {
+  localStorage.setItem(PLAYER_KEY(sessionId), JSON.stringify(identity));
+}

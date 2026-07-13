@@ -21,7 +21,7 @@ export default async function CourtsPage({ params }: PageProps) {
   }
 
   const service  = new MatchmakingService(supabase);
-  const { courts, eligibility, forecastPool, queue } = await service.getCourtsBoard(sessionId);
+  const { courts, eligibility, forecastPool, manualSlot, queue } = await service.getCourtsBoard(sessionId);
 
   return (
     <div className="space-y-4">
@@ -37,6 +37,7 @@ export default async function CourtsPage({ params }: PageProps) {
         initialCourts={courts}
         initialEligibility={eligibility}
         initialForecastPool={forecastPool}
+        initialManualSlot={manualSlot}
         initialQueue={queue}
       />
     </div>

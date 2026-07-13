@@ -25,8 +25,10 @@ interface OverviewSummaryProps {
   sessionId:           string;
   initialCourts:       CourtView[];
   initialForecastPool: ForecastSet[];
+  initialManualSlot:   ForecastSet | null;
   initialQueue:        QueueRow[];
   initialLeaderboard:  LeaderboardRow[];
+  playersPerMatch:     number;
 }
 
 // One realtime-backed summary for the host Overview page — condensed views
@@ -36,10 +38,12 @@ interface OverviewSummaryProps {
 // finishing (which touches matches + queue_entries + player_statistics in
 // one go) triggers one combined refresh instead of several independent ones.
 export function OverviewSummary({
-  sessionId, initialCourts, initialForecastPool, initialQueue, initialLeaderboard,
+  sessionId, initialCourts, initialForecastPool, initialManualSlot, initialQueue,
+  initialLeaderboard, playersPerMatch,
 }: OverviewSummaryProps) {
   const [courts, setCourts]             = useState(initialCourts);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
+  const [manualSlot, setManualSlot]     = useState(initialManualSlot);
   const [queue, setQueue]               = useState(initialQueue);
   const [leaderboard, setLeaderboard]   = useState(initialLeaderboard);
 
@@ -50,6 +54,7 @@ export function OverviewSummary({
     ]);
     setCourts(board.courts);
     setForecastPool(board.forecastPool);
+    setManualSlot(board.manualSlot);
     setQueue(board.queue);
     setLeaderboard(players);
   }, [sessionId]);
@@ -58,7 +63,7 @@ export function OverviewSummary({
     const supabase = createClient();
     const channel = supabase.channel(`session:${sessionId}:overview-summary`);
 
-    for (const table of ["matches", "queue_entries", "courts", "player_statistics", "players"]) {
+    for (const table of ["matches", "match_players", "queue_entries", "courts", "player_statistics", "players"]) {
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `session_id=eq.${sessionId}` },
@@ -81,7 +86,14 @@ export function OverviewSummary({
         </div>
       </div>
 
-      <ForecastPoolSection sets={forecastPool} />
+      <ForecastPoolSection
+        sessionId={sessionId}
+        sets={forecastPool}
+        manualSlot={manualSlot}
+        queue={queue}
+        playersPerMatch={playersPerMatch}
+        onChanged={refresh}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-3">

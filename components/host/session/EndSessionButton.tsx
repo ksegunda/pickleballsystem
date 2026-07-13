@@ -48,7 +48,12 @@ export function EndSessionButton({ sessionId }: EndSessionButtonProps) {
       toast.success("Session ended. Report downloaded — player data has been removed.");
       setOpen(false);
       router.push(ROUTES.SESSIONS);
-    } catch {
+    } catch (err) {
+      // Covers a thrown network/transport error calling endSessionAction, or
+      // downloadPdf() throwing after the action already succeeded server-side
+      // (session already ended in that case) — check which before assuming
+      // this means the session wasn't ended.
+      console.error("[EndSessionButton] session=" + sessionId, err);
       toast.error("Failed to end session.");
     } finally {
       setLoading(false);

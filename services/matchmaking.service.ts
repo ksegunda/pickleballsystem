@@ -46,9 +46,23 @@ export class MatchmakingService {
       hasEnoughPlayers: waitingCount >= playersPerMatch,
     };
 
-    const forecastPool = this.buildForecastPool(courts.length, forecastRows, waitingCount, playersPerMatch);
+    const autoRows   = forecastRows.filter((row) => !row.is_manual);
+    const manualRow  = forecastRows.find((row) => row.is_manual) ?? null;
 
-    return { courts, eligibility, forecastPool, queue };
+    const forecastPool = this.buildForecastPool(courts.length, autoRows, waitingCount, playersPerMatch);
+    const manualSlot: ForecastSet | null = manualRow
+      ? { matchId: manualRow.match_id, setNumber: 0, players: manualRow.players as unknown as ForecastSet["players"], missing: 0 }
+      : null;
+
+    return { courts, eligibility, forecastPool, manualSlot, queue };
+  }
+
+  async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
+    return this.matchRepo.updateTeams(matchId, teamA, teamB);
+  }
+
+  async createManualMatch(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {
+    return this.matchRepo.createManual(sessionId, teamA, teamB);
   }
 
   /**

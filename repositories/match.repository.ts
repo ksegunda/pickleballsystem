@@ -37,6 +37,26 @@ export class MatchRepository {
     if (error) throw error;
   }
 
+  async updateTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
+    const { data, error } = await this.db.rpc("update_match_teams", {
+      p_match_id: matchId,
+      p_team_a:   teamA,
+      p_team_b:   teamB,
+    });
+    if (error) throw error;
+    return data ?? false;
+  }
+
+  async createManual(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {
+    const { data, error } = await this.db.rpc("create_manual_match", {
+      p_session_id: sessionId,
+      p_team_a:     teamA,
+      p_team_b:     teamB,
+    });
+    if (error) throw error;
+    return data ?? null;
+  }
+
   async getForecastPool(sessionId: string) {
     const { data, error } = await this.db
       .from("forecast_pool_view")

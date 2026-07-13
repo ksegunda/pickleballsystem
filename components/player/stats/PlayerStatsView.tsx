@@ -6,7 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { getPlayerContextAction, getMatchHistoryAction } from "@/actions/player.actions";
 import { getStoredPlayerIdentity } from "@/lib/utils/player-identity";
 import { timeAgo } from "@/lib/utils/format";
+import { useElapsedSeconds } from "@/lib/hooks/useElapsedSeconds";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
+import { LastSyncedIndicator } from "@/components/shared/LastSyncedIndicator";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,10 +25,12 @@ export function PlayerStatsView({ session }: PlayerStatsViewProps) {
   const [player, setPlayer]   = useState<PlayerWithStats | null>(null);
   const [history, setHistory] = useState<MatchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const syncSecs = useElapsedSeconds(lastSyncedAt?.toISOString(), lastSyncedAt !== null);
 
   const load = useCallback(async () => {
     const identity = getStoredPlayerIdentity(session.id);
-    if (!identity) {
+    if (!identity?.player_id) {
       setLoading(false);
       return;
     }
@@ -38,6 +42,7 @@ export function PlayerStatsView({ session }: PlayerStatsViewProps) {
     if (ctx) setPlayer(ctx as PlayerWithStats);
     setHistory(matchHistory);
     setLoading(false);
+    setLastSyncedAt(new Date());
   }, [session.id]);
 
   useEffect(() => {
@@ -94,7 +99,10 @@ export function PlayerStatsView({ session }: PlayerStatsViewProps) {
     <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">My Statistics</h1>
-        <LiveIndicator />
+        <div className="flex flex-col items-end gap-1">
+          <LiveIndicator />
+          {lastSyncedAt && <LastSyncedIndicator variant="subtle" secondsSinceSync={syncSecs} />}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

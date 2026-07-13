@@ -19,15 +19,17 @@ interface CourtsBoardProps {
   initialCourts:        CourtView[];
   initialEligibility:   MatchEligibility;
   initialForecastPool:  ForecastSet[];
+  initialManualSlot:    ForecastSet | null;
   initialQueue:         QueueRow[];
 }
 
 export function CourtsBoard({
-  sessionId, initialCourts, initialEligibility, initialForecastPool, initialQueue,
+  sessionId, initialCourts, initialEligibility, initialForecastPool, initialManualSlot, initialQueue,
 }: CourtsBoardProps) {
   const [courts, setCourts]           = useState(initialCourts);
   const [eligibility, setEligibility] = useState(initialEligibility);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
+  const [manualSlot, setManualSlot]   = useState(initialManualSlot);
   const [queue, setQueue]             = useState(initialQueue);
 
   const refresh = useCallback(async () => {
@@ -35,6 +37,7 @@ export function CourtsBoard({
     setCourts(board.courts);
     setEligibility(board.eligibility);
     setForecastPool(board.forecastPool);
+    setManualSlot(board.manualSlot);
     setQueue(board.queue);
   }, [sessionId]);
 
@@ -42,7 +45,7 @@ export function CourtsBoard({
     const supabase = createClient();
     const channel = supabase.channel(`session:${sessionId}:courts-board`);
 
-    for (const table of ["matches", "queue_entries", "courts", "player_statistics"]) {
+    for (const table of ["matches", "match_players", "queue_entries", "courts", "player_statistics"]) {
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `session_id=eq.${sessionId}` },
@@ -73,7 +76,14 @@ export function CourtsBoard({
           />
         ))}
       </div>
-      <ForecastPoolSection sets={forecastPool} />
+      <ForecastPoolSection
+        sessionId={sessionId}
+        sets={forecastPool}
+        manualSlot={manualSlot}
+        queue={queue}
+        playersPerMatch={eligibility.playersPerMatch}
+        onChanged={refresh}
+      />
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-foreground">Queue</h2>

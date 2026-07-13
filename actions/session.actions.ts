@@ -71,6 +71,7 @@ export async function endSessionAction(
       },
     };
   } catch (err) {
+    console.error(`[endSessionAction] session=${sessionId}`, err);
     const msg = err instanceof Error ? err.message : "Failed to end session.";
     return { success: false, error: msg };
   }

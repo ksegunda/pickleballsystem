@@ -84,15 +84,38 @@ export class PlayerRepository {
   }
 
   async getQueueEntry(playerId: string, sessionId: string) {
+    // "Already accounted for" covers matched (seated in an unstarted set)
+    // and resting too, not just waiting — otherwise a resting player who
+    // revisits the join URL looks queue-less and gets a second live row
+    // inserted alongside their resting one.
     const { data, error } = await this.db
       .from("queue_entries")
       .select("*")
       .eq("player_id", playerId)
       .eq("session_id", sessionId)
-      .eq("status", "waiting")
+      .in("status", ["waiting", "matched", "resting"])
       .maybeSingle();
     if (error) throw error;
     return data;
+  }
+
+  async leave(playerId: string, deviceToken?: string) {
+    const { data, error } = await this.db.rpc("leave_session", {
+      p_player_id:    playerId,
+      p_device_token: deviceToken ?? null,
+    });
+    if (error) throw error;
+    return data ?? false;
+  }
+
+  async setResting(playerId: string, resting: boolean, deviceToken?: string) {
+    const { data, error } = await this.db.rpc("set_resting", {
+      p_player_id:    playerId,
+      p_resting:      resting,
+      p_device_token: deviceToken ?? null,
+    });
+    if (error) throw error;
+    return data ?? false;
   }
 
   async getLeaderboard(sessionId: string) {

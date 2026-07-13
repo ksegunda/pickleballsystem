@@ -15,7 +15,7 @@ export type CourtStatus   = "available" | "occupied" | "maintenance";
 export type MatchStatus   = "pending" | "in_progress" | "completed" | "cancelled" | "forecasted";
 export type TeamSide      = "team_a" | "team_b";
 export type MatchResult   = "win" | "loss";
-export type QueueStatus   = "waiting" | "matched" | "removed";
+export type QueueStatus   = "waiting" | "matched" | "removed" | "resting";
 
 export interface Database {
   public: {
@@ -189,6 +189,7 @@ export interface Database {
           started_at:   string | null;
           ended_at:     string | null;
           created_at:   string;
+          is_manual:    boolean;
         };
         Insert: {
           id?:           string;
@@ -200,6 +201,7 @@ export interface Database {
           started_at?:   string | null;
           ended_at?:     string | null;
           created_at?:   string;
+          is_manual?:    boolean;
         };
         Update: Partial<Database["public"]["Tables"]["matches"]["Insert"]>;
         Relationships: [];
@@ -381,6 +383,7 @@ export interface Database {
           session_id:    string;
           match_number:  number;
           created_at:    string;
+          is_manual:     boolean;
           players:       Json;
         };
         Relationships: [];
@@ -471,6 +474,22 @@ export interface Database {
       end_session: {
         Args: { p_session_id: string };
         Returns: boolean;
+      };
+      leave_session: {
+        Args: { p_player_id: string; p_device_token?: string | null };
+        Returns: boolean;
+      };
+      set_resting: {
+        Args: { p_player_id: string; p_resting: boolean; p_device_token?: string | null };
+        Returns: boolean;
+      };
+      update_match_teams: {
+        Args: { p_match_id: string; p_team_a: string[]; p_team_b: string[] };
+        Returns: boolean;
+      };
+      create_manual_match: {
+        Args: { p_session_id: string; p_team_a: string[]; p_team_b: string[] };
+        Returns: string | null;
       };
     };
     Enums: {

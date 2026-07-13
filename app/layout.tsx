@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   keywords:  ["pickleball", "open play", "queue management", "matchmaking"],
   authors:   [{ name: "OpenPlay" }],
   manifest:  "/manifest.json",
+  icons: {
+    icon:              [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple:             [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

@@ -40,11 +40,11 @@ export const createSessionSchema = z.object({
     allow_late_join:        z.boolean().default(true),
     games_to_win:           z.number().int().min(1).max(21).default(11),
     match_format:           z.enum(["singles", "doubles"]).default("doubles"),
-    weight_waiting_time:    z.number().min(0).max(1).default(0.40),
-    weight_games_played:    z.number().min(0).max(1).default(0.35),
-    weight_performance:     z.number().min(0).max(1).default(0.25),
+    weight_waiting_time:    z.number().min(0).max(1),
+    weight_games_played:    z.number().min(0).max(1),
+    weight_performance:     z.number().min(0).max(1),
     anti_repeat_threshold:  z.number().int().min(1).max(10).default(3),
-  }).default({}),
+  }),
 }).refine(
   (data) => {
     if (!data.end_time || data.end_time === "") return true;

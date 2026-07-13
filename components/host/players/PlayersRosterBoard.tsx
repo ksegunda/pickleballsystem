@@ -1,15 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, Users } from "lucide-react";
+import { Search, Users, UserX } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { getLeaderboardAction } from "@/actions/player.actions";
+import { getLeaderboardAction, removePlayerAction } from "@/actions/player.actions";
 import { PlayerStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import type { Database } from "@/types/database.types";
 import type { PlayerStatus } from "@/types/database.types";
 
@@ -32,11 +37,32 @@ export function PlayersRosterBoard({ sessionId, initialPlayers }: PlayersRosterB
   const [players, setPlayers] = useState(initialPlayers);
   const [search, setSearch]   = useState("");
   const [statusFilter, setStatusFilter] = useState<PlayerStatus | "all">("all");
+  const [removeTarget, setRemoveTarget] = useState<LeaderboardRow | null>(null);
+  const [removing, setRemoving]         = useState(false);
 
   const refresh = useCallback(async () => {
     const data = await getLeaderboardAction(sessionId);
     setPlayers(data);
   }, [sessionId]);
+
+  async function handleRemove() {
+    if (!removeTarget) return;
+    setRemoving(true);
+    try {
+      const result = await removePlayerAction(removeTarget.player_id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${removeTarget.display_name} removed from the session.`);
+      setRemoveTarget(null);
+      await refresh();
+    } catch {
+      toast.error("Could not remove this player. Please try again.");
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -110,12 +136,45 @@ export function PlayersRosterBoard({ sessionId, initialPlayers }: PlayersRosterB
                     {p.games_played} games · {p.wins}W-{p.losses}L · {p.win_rate}% win rate
                   </p>
                 </div>
-                <PlayerStatusBadge status={p.player_status} />
+                <div className="flex items-center gap-2">
+                  <PlayerStatusBadge status={p.player_status} />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setRemoveTarget(p)}
+                    title="Remove player"
+                  >
+                    <UserX className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <Dialog open={removeTarget !== null} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {removeTarget?.display_name}?</DialogTitle>
+            <DialogDescription>
+              They&apos;ll be taken off the queue and back to the join screen. If they&apos;re
+              already assigned to an upcoming match, the next fair player from the queue takes
+              their seat automatically. Their stats and match history stay intact — they can
+              rejoin later with the join code or QR.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRemoveTarget(null)} disabled={removing}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRemove} loading={removing}>
+              <UserX className="h-4 w-4" />
+              Remove Player
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

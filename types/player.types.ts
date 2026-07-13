@@ -20,8 +20,9 @@ export interface PlayerWithStats extends Player {
 }
 
 export interface PlayerIdentity {
-  player_id:    string;
+  player_id:    string | null; // null while an optimistic join hasn't been confirmed yet
   session_id:   string;
   display_name: string;
   device_token: string;
+  pending?:     boolean;
 }

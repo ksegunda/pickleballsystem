@@ -12,7 +12,11 @@
       "PowerShell(npm install @supabase/ssr@^0.12.0 2>&1)",
       "PowerShell(npm run dev 2>&1)",
       "PowerShell(Get-ChildItem -Path \"c:\\\\project\\\\pickleball system\\\\.claude\\\\skills\" -Recurse -Filter \"SKILL.md\" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })",
-      "PowerShell(Start-Sleep -Seconds 2; try { $r = Invoke-WebRequest -Uri http://localhost:3000 -UseBasicParsing -TimeoutSec 15; \"STATUS: $\\($r.StatusCode\\)\" } catch { \"ERROR: $\\($_.Exception.Message\\)\" })"
+      "PowerShell(Start-Sleep -Seconds 2; try { $r = Invoke-WebRequest -Uri http://localhost:3000 -UseBasicParsing -TimeoutSec 15; \"STATUS: $\\($r.StatusCode\\)\" } catch { \"ERROR: $\\($_.Exception.Message\\)\" })",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(mkdir -p public/icons)",
+      "Bash(node -e ' *)"
     ]
   }
 }

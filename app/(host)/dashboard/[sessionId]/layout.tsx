@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SessionService } from "@/services/session.service";
 import { getHostAction } from "@/actions/auth.actions";
 import { Sidebar } from "@/components/host/layout/Sidebar";
+import { ConnectionBanner } from "@/components/shared/ConnectionBanner";
 import { cn } from "@/lib/utils/cn";
 
 interface DashboardLayoutProps {
@@ -28,6 +29,7 @@ export default async function DashboardLayout({ children, params }: DashboardLay
 
   return (
     <div className="min-h-screen bg-background">
+      <ConnectionBanner />
       <Sidebar sessionId={sessionId} host={host} sessionName={session.session_name} sessionStatus={session.status} />
 
       {/* Main content — offset for sidebar on desktop */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +38,9 @@ export function SessionForm() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const stepRef = useRef(step);
+  stepRef.current = step;
 
   const today = new Date().toISOString().split("T")[0];
   const now   = roundToNearestSlot(new Date().toTimeString().slice(0, 5));
@@ -60,12 +63,28 @@ export function SessionForm() {
   const { register, handleSubmit, formState: { errors }, setValue, watch, trigger } = form;
 
   async function goNext() {
+    if (isTransitioning) return;
     const fields: Record<number, (keyof CreateSessionSchema)[]> = {
       0: ["club_name", "session_name", "session_date", "start_time", "end_time"],
       1: ["number_of_courts"],
     };
     const valid = await trigger(fields[step] ?? []);
-    if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    if (valid) {
+      setIsTransitioning(true);
+      setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    }
+  }
+
+  // Enter in a text field should advance the wizard, not fall through to the
+  // browser's native implicit form submission — only the last step's button
+  // is ever type="submit", so this keeps Enter's behavior consistent on every
+  // step instead of doing nothing on 0/1 and submitting for real on 2.
+  function handleFormKeyDown(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    if (!(e.target instanceof HTMLInputElement)) return;
+    if (step === STEPS.length - 1) return;
+    e.preventDefault();
+    goNext();
   }
 
   async function onSubmit(data: CreateSessionSchema) {
@@ -113,10 +132,16 @@ export function SessionForm() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormKeyDown}>
         <AnimatePresence mode="wait">
           {step === 0 && (
-            <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div
+              key="step0"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              onAnimationComplete={() => { if (stepRef.current === 0) setIsTransitioning(false); }}
+            >
               <Card>
                 <CardHeader>
                   <CardTitle>Session Details</CardTitle>
@@ -182,7 +207,13 @@ export function SessionForm() {
           )}
 
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              onAnimationComplete={() => { if (stepRef.current === 1) setIsTransitioning(false); }}
+            >
               <Card>
                 <CardHeader>
                   <CardTitle>Court & Player Configuration</CardTitle>
@@ -249,7 +280,13 @@ export function SessionForm() {
           )}
 
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              onAnimationComplete={() => { if (stepRef.current === 2) setIsTransitioning(false); }}
+            >
               <Card>
                 <CardHeader>
                   <CardTitle>Session Settings</CardTitle>
@@ -331,7 +368,7 @@ export function SessionForm() {
           )}
 
           {step < STEPS.length - 1 ? (
-            <Button type="button" onClick={goNext}>
+            <Button type="button" onClick={goNext} disabled={isTransitioning}>
               Continue
               <ArrowRight className="h-4 w-4" />
             </Button>

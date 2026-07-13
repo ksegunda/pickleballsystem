@@ -1,0 +1,11 @@
+-- =============================================================
+-- Migration 015: Queue "resting" status
+-- Adds the value queue_entries.status needs to represent a player
+-- who is temporarily excluded from matchmaking selection without
+-- leaving the session. In its own migration/transaction, separate
+-- from the migration that will actually use it (016) — a new enum
+-- value can't safely be referenced in the same transaction that
+-- adds it. Same precedent as migration 010 adding 'forecasted' to
+-- match_status ahead of migration 011 using it.
+-- =============================================================
+ALTER TYPE queue_entry_status ADD VALUE 'resting';

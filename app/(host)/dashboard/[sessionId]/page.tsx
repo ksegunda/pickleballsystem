@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { QRCodeDisplay } from "@/components/host/session/QRCodeDisplay";
+import { JoinCodeDisplay } from "@/components/host/session/JoinCodeDisplay";
 import { StartSessionButton } from "@/components/host/session/StartSessionButton";
 import { EndSessionButton } from "@/components/host/session/EndSessionButton";
 import { DashboardStats } from "@/components/host/session/DashboardStats";
@@ -93,9 +94,15 @@ export default async function DashboardPage({ params }: PageProps) {
         playersFallback={players.length}
       />
 
-      {/* QR code — primary way for players to join */}
-      <div className="max-w-sm">
-        <QRCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
+      {/* QR code + join code — always shown together so the code stays a
+          working fallback even if QR generation ever fails again */}
+      <div className="flex flex-wrap gap-4">
+        <div className="w-full max-w-sm sm:w-auto">
+          <QRCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
+        </div>
+        <div className="w-full max-w-sm sm:w-auto">
+          <JoinCodeDisplay sessionId={sessionId} joinCode={session.join_code} />
+        </div>
       </div>
 
       {/* Live overview: court assignments, next up, queue, leaderboard */}
@@ -104,8 +111,10 @@ export default async function DashboardPage({ params }: PageProps) {
           sessionId={sessionId}
           initialCourts={overviewBoard.courts}
           initialForecastPool={overviewBoard.forecastPool}
+          initialManualSlot={overviewBoard.manualSlot}
           initialQueue={overviewBoard.queue}
           initialLeaderboard={leaderboard}
+          playersPerMatch={overviewBoard.eligibility.playersPerMatch}
         />
       )}
 

@@ -58,13 +58,38 @@ export class PlayerService {
       return { player: existing, isReturning: true };
     }
 
-    // Create new player
-    const player = await this.playerRepo.create({
-      session_id:   input.session_id,
-      display_name: input.display_name,
-      device_token: input.device_token,
-      status:       "waiting",
-    });
+    // Create new player. Two distinct unique constraints can reject this
+    // insert: unique_name_per_session (a real conflict — tell the caller)
+    // and idx_players_device_token_unique (this exact device lost a race
+    // against its own concurrent join attempt — e.g. two open tabs — in
+    // which case the winning attempt already created the player; reuse it
+    // instead of erroring).
+    let player;
+    try {
+      player = await this.playerRepo.create({
+        session_id:   input.session_id,
+        display_name: input.display_name,
+        device_token: input.device_token,
+        status:       "waiting",
+      });
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === "23505") {
+        const message = (err as { message?: string }).message ?? "";
+        if (message.includes("idx_players_device_token_unique")) {
+          const winner = await this.playerRepo.findByDeviceToken(input.session_id, input.device_token);
+          if (winner) {
+            const inQueue = await this.playerRepo.getQueueEntry(winner.id, input.session_id);
+            if (!inQueue) {
+              await this.queueRepo.addToQueue(input.session_id, winner.id);
+            }
+            return { player: winner, isReturning: true };
+          }
+        }
+        throw new Error("That name is already taken in this session — try a different one.");
+      }
+      throw err;
+    }
 
     // Auto-add to queue
     await this.queueRepo.addToQueue(input.session_id, player.id);
@@ -73,6 +98,14 @@ export class PlayerService {
     await this.queueRepo.recalculatePositions(input.session_id);
 
     return { player, isReturning: false };
+  }
+
+  async leaveSession(playerId: string, deviceToken?: string) {
+    return this.playerRepo.leave(playerId, deviceToken);
+  }
+
+  async setResting(playerId: string, resting: boolean, deviceToken?: string) {
+    return this.playerRepo.setResting(playerId, resting, deviceToken);
   }
 
   async getPlayerWithContext(playerId: string, sessionId: string) {

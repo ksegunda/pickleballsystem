@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { User, ArrowRight, Users, Calendar, Zap } from "lucide-react";
-import { joinSessionByIdAction } from "@/actions/player.actions";
 import { generateDeviceToken } from "@/lib/utils/generate-code";
+import { getStoredPlayerIdentity, setStoredPlayerIdentity } from "@/lib/utils/player-identity";
 import { formatDate, formatTime } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,6 @@ import { ROUTES } from "@/lib/constants/routes";
 import type { Session } from "@/types/session.types";
 
 const DEVICE_TOKEN_KEY = "openplay_device_token";
-const PLAYER_KEY       = (sessionId: string) => `openplay_player_${sessionId}`;
 
 interface JoinFormProps {
   session: Session;
@@ -25,7 +23,6 @@ interface JoinFormProps {
 export function JoinForm({ session }: JoinFormProps) {
   const router = useRouter();
   const [name, setName]         = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [deviceToken, setDeviceToken] = useState<string>("");
 
@@ -38,15 +35,17 @@ export function JoinForm({ session }: JoinFormProps) {
     }
     setDeviceToken(token);
 
-    // Check if already joined this session
-    const savedPlayer = localStorage.getItem(PLAYER_KEY(session.id));
-    if (savedPlayer) {
-      const player = JSON.parse(savedPlayer);
+    // Already joined (or mid-join) this session — go straight there.
+    if (getStoredPlayerIdentity(session.id)) {
       router.replace(ROUTES.PLAY(session.id));
     }
   }, [session.id, router]);
 
-  async function handleJoin(e: React.FormEvent) {
+  // Optimistic: no network call here at all. Write the intent to join
+  // locally and navigate immediately — the destination page is the sole
+  // place that actually calls the join Server Action and owns retrying,
+  // so there's only ever one in-flight attempt per pending identity.
+  function handleJoin(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       setError("Please enter your name.");
@@ -61,39 +60,15 @@ export function JoinForm({ session }: JoinFormProps) {
       return;
     }
 
-    setIsLoading(true);
     setError(null);
-
-    try {
-      const result = await joinSessionByIdAction(session.id, name.trim(), deviceToken);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-
-      // Save player identity locally
-      localStorage.setItem(
-        PLAYER_KEY(session.id),
-        JSON.stringify({
-          player_id:    result.data.player.id,
-          session_id:   session.id,
-          display_name: result.data.player.display_name,
-          device_token: deviceToken,
-        })
-      );
-
-      toast.success(
-        result.data.isReturning
-          ? `Welcome back, ${result.data.player.display_name}!`
-          : `You're in, ${result.data.player.display_name}!`
-      );
-
-      router.push(ROUTES.PLAY(session.id));
-    } catch {
-      setError("Failed to join. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    setStoredPlayerIdentity(session.id, {
+      player_id:    null,
+      session_id:   session.id,
+      display_name: name.trim(),
+      device_token: deviceToken,
+      pending:      true,
+    });
+    router.push(ROUTES.PLAY(session.id));
   }
 
   return (
@@ -162,7 +137,7 @@ export function JoinForm({ session }: JoinFormProps) {
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
 
-            <Button type="submit" className="w-full" size="lg" loading={isLoading}>
+            <Button type="submit" className="w-full" size="lg">
               Join Queue
               <ArrowRight className="h-4 w-4" />
             </Button>
