@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
+import { DeleteSessionButton } from "@/components/host/session/DeleteSessionButton";
 import { formatDate, formatSubscriptionPlan } from "@/lib/utils/format";
 import { ROUTES } from "@/lib/constants/routes";
 
@@ -151,9 +152,12 @@ export default async function SessionsPage() {
             <h2 className="mb-3 text-sm font-semibold text-foreground uppercase tracking-wide">
               Past Sessions
             </h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Player data, matches, and stats stay viewable here — nothing was deleted when these ended.
+            </p>
             <div className="space-y-3">
               {past.map((session) => (
-                <SessionRow key={session.id} session={session} />
+                <SessionRow key={session.id} session={session} showDelete />
               ))}
             </div>
           </section>
@@ -184,12 +188,12 @@ export default async function SessionsPage() {
   );
 }
 
-function SessionRow({ session }: { session: Session }) {
+function SessionRow({ session, showDelete = false }: { session: Session; showDelete?: boolean }) {
   const isActive = session.status === "active";
   return (
-    <Link href={ROUTES.DASHBOARD(session.id)} className="block group">
-      <Card className={`transition-all duration-150 hover:shadow-card-md group-hover:border-primary/30 ${isActive ? "border-primary/20" : ""}`}>
-        <CardContent className="p-4 flex items-center gap-4">
+    <Card className={`transition-all duration-150 hover:shadow-card-md hover:border-primary/30 ${isActive ? "border-primary/20" : ""}`}>
+      <CardContent className="p-4 flex items-center gap-4">
+        <Link href={ROUTES.DASHBOARD(session.id)} className="flex min-w-0 flex-1 items-center gap-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isActive ? "bg-primary/10" : "bg-muted"}`}>
             <Calendar className={`h-5 w-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
           </div>
@@ -214,8 +218,9 @@ function SessionRow({ session }: { session: Session }) {
               <p className="text-xs text-muted-foreground">Courts</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        </Link>
+        {showDelete && <DeleteSessionButton sessionId={session.id} sessionName={session.session_name} />}
+      </CardContent>
+    </Card>
   );
 }

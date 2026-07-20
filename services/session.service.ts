@@ -109,6 +109,20 @@ export class SessionService {
     return this.repo.findById(sessionId);
   }
 
+  // The only path that actually removes a session's data — a plain
+  // `DELETE FROM sessions` cascades to every child table already (see
+  // migration 001's ON DELETE CASCADE FKs), so nothing extra is needed
+  // here beyond guarding that it's only ever called on a session that's
+  // actually done (never active/pending — those go through End Session
+  // first, which no longer deletes anything on its own).
+  async deleteSession(sessionId: string): Promise<void> {
+    const session = await this.repo.findById(sessionId);
+    if (!["ended", "archived"].includes(session.status)) {
+      throw new Error("Only an ended session can be deleted. End it first.");
+    }
+    await this.repo.delete(sessionId);
+  }
+
   async getSettings(sessionId: string) {
     return this.repo.getSettings(sessionId);
   }

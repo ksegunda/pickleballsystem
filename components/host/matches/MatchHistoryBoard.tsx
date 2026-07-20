@@ -119,13 +119,28 @@ export function MatchHistoryBoard({ sessionId, initialRows }: MatchHistoryBoardP
                   <div
                     className={cn(
                       "space-y-1 rounded-lg p-2",
-                      row.winner_team === "team_a" && "bg-accent/10"
+                      row.winner_team === "team_a" && "bg-green-50 dark:bg-green-900/20",
+                      row.winner_team === "team_b" && "bg-red-50 dark:bg-red-900/10"
                     )}
                   >
-                    <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {row.winner_team === "team_a" && <Trophy className="h-3 w-3 text-accent-foreground" />}
-                      Team A
-                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Team A
+                      </p>
+                      {row.winner_team && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                            row.winner_team === "team_a"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          )}
+                        >
+                          {row.winner_team === "team_a" ? <Trophy className="h-3 w-3" /> : null}
+                          {row.winner_team === "team_a" ? "WON" : "LOST"}
+                        </span>
+                      )}
+                    </div>
                     {teamA.map((p) => (
                       <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
                     ))}
@@ -133,13 +148,28 @@ export function MatchHistoryBoard({ sessionId, initialRows }: MatchHistoryBoardP
                   <div
                     className={cn(
                       "space-y-1 rounded-lg p-2",
-                      row.winner_team === "team_b" && "bg-accent/10"
+                      row.winner_team === "team_b" && "bg-green-50 dark:bg-green-900/20",
+                      row.winner_team === "team_a" && "bg-red-50 dark:bg-red-900/10"
                     )}
                   >
-                    <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {row.winner_team === "team_b" && <Trophy className="h-3 w-3 text-accent-foreground" />}
-                      Team B
-                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Team B
+                      </p>
+                      {row.winner_team && (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                            row.winner_team === "team_b"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          )}
+                        >
+                          {row.winner_team === "team_b" ? <Trophy className="h-3 w-3" /> : null}
+                          {row.winner_team === "team_b" ? "WON" : "LOST"}
+                        </span>
+                      )}
+                    </div>
                     {teamB.map((p) => (
                       <p key={p.player_id} className="truncate text-foreground">{p.display_name}</p>
                     ))}

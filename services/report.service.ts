@@ -17,11 +17,13 @@ export class ReportService {
   }
 
   /**
-   * End an active session: compiles the final report while player data
-   * still exists, generates the PDF, and persists the JSONB snapshot to
-   * `reports` — all BEFORE the atomic delete-and-close RPC runs. If PDF
-   * generation or the report insert throws, nothing has been deleted and
-   * the session is still 'active'; the caller can simply retry.
+   * End an active session: compiles the final report, generates a PDF
+   * takeaway, and persists a JSONB snapshot to `reports` — then flips the
+   * session to 'ended'. Player/match/stat data is NOT deleted (migration
+   * 025) — it stays live and browsable under "Past Sessions" until the
+   * host explicitly deletes the whole session. If PDF generation or the
+   * report insert throws, the session is still 'active'; the caller can
+   * simply retry.
    */
   async endSessionWithReport(sessionId: string): Promise<{
     pdfBytes:   Uint8Array;
@@ -75,10 +77,12 @@ export class ReportService {
 
     const pdfBytes = generateSessionReportPdf(reportData);
 
-    // Durable snapshot BEFORE anything destructive happens.
+    // Durable PDF/JSON snapshot of the final state, independent of the
+    // live data (which now persists too, but a snapshot is still a nice,
+    // stable "at the moment it ended" artifact for the host to keep).
     await this.sessionRepo.createReport(sessionId, reportData);
 
-    // Only now: atomic delete of all player-related data + status -> 'ended'.
+    // Only now: flip status -> 'ended'. Doesn't touch any player/match data.
     const ended = await this.sessionRepo.endSession(sessionId);
     if (!ended) {
       throw new Error("Session could not be ended — it may have already ended.");

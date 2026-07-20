@@ -78,6 +78,19 @@ export async function endSessionAction(
   }
 }
 
+export async function deleteSessionAction(sessionId: string): Promise<ActionResult<null>> {
+  try {
+    const { supabase } = await getAuthenticatedClient();
+    const service = new SessionService(supabase);
+    await service.deleteSession(sessionId);
+    revalidatePath("/sessions");
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to delete session.";
+    return { success: false, error: msg };
+  }
+}
+
 export async function getHostSessionsAction() {
   try {
     const { supabase, userId } = await getAuthenticatedClient();

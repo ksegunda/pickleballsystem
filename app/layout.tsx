@@ -21,10 +21,9 @@ export const metadata: Metadata = {
   keywords:  ["pickleball", "open play", "queue management", "matchmaking"],
   authors:   [{ name: "PaddleSync" }],
   manifest:  "/manifest.json",
-  icons: {
-    icon:              [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple:             [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-  },
+  // Favicon/apple-touch-icon now come from app/icon.png + app/apple-icon.png
+  // (Next.js file convention — takes priority over a manual `icons` block,
+  // no metadata needed here anymore).
 };
 
 export const viewport: Viewport = {

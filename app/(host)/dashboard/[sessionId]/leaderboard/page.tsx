@@ -16,7 +16,8 @@ export default async function LeaderboardPage({ params }: PageProps) {
 
   const sessionService = new SessionService(supabase);
   const session = await sessionService.getSession(sessionId);
-  if (session.status !== "active") {
+  // Read-only view — stays browsable for ended/archived sessions too.
+  if (!["active", "ended", "archived"].includes(session.status)) {
     redirect(ROUTES.DASHBOARD(sessionId));
   }
 

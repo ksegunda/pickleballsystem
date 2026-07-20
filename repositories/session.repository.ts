@@ -112,10 +112,9 @@ export class SessionRepository {
     if (error) throw error;
   }
 
-  // Atomic: deletes all player-related data for the session and marks it
-  // 'ended' in a single Postgres transaction (see migration 014). Returns
-  // false if the session wasn't found or wasn't 'active' — nothing is
-  // deleted in that case.
+  // Flips the session to 'ended' — no longer deletes anything (see
+  // migration 025; migration 014's purge behavior was reversed). Returns
+  // false if the session wasn't found or wasn't 'active'.
   async endSession(sessionId: string): Promise<boolean> {
     const { data, error } = await this.db.rpc("end_session", { p_session_id: sessionId });
     if (error) throw error;

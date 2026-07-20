@@ -45,7 +45,7 @@ export function EndSessionButton({ sessionId }: EndSessionButtonProps) {
         return;
       }
       downloadPdf(result.data.pdfBase64, result.data.fileName);
-      toast.success("Session ended. Report downloaded — player data has been removed.");
+      toast.success("Session ended. Report downloaded — find it anytime under Past Sessions.");
       setOpen(false);
       router.push(ROUTES.SESSIONS);
     } catch (err) {
@@ -72,10 +72,10 @@ export function EndSessionButton({ sessionId }: EndSessionButtonProps) {
         <DialogHeader>
           <DialogTitle>End this session?</DialogTitle>
           <DialogDescription>
-            This will generate a final report and permanently remove player data from this
-            session. Your session record and the report stay in &quot;All Sessions&quot; —
-            but every guest player, match, and queue entry will be deleted and cannot be
-            recovered. This cannot be undone.
+            This will generate a final report and close the session. All players, matches,
+            and stats stay intact and viewable under Past Sessions in My Club — nothing is
+            deleted. You can permanently delete the session and its data later from there,
+            if you want to.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">

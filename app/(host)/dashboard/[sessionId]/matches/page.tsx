@@ -16,7 +16,10 @@ export default async function MatchHistoryPage({ params }: PageProps) {
 
   const sessionService = new SessionService(supabase);
   const session = await sessionService.getSession(sessionId);
-  if (session.status !== "active") {
+  // Match history is a read-only view — stays browsable for ended/archived
+  // sessions too (that's the point of "Past Sessions"), only pending
+  // sessions (no matches possible yet) get redirected away.
+  if (!["active", "ended", "archived"].includes(session.status)) {
     redirect(ROUTES.DASHBOARD(sessionId));
   }
 

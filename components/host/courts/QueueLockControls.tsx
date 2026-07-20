@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Lock, Users, X } from "lucide-react";
 import { createLockedSetAction, deleteLockedSetAction } from "@/actions/match.actions";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { QueueEntryRow } from "@/components/host/queue/QueueEntryRow";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { LockTeamAssignModal } from "./LockTeamAssignModal";
+import { LockedGroupCard, type LockedGroupMember } from "./LockedGroupCard";
 import type { Database, LockType } from "@/types/database.types";
 import type { LockedPlayerRow } from "@/types/match.types";
 
@@ -20,13 +21,65 @@ interface QueueLockControlsProps {
   onChanged:     () => void;
 }
 
+type DisplayUnit =
+  | { kind: "single"; entry: QueueRow; rank: number }
+  | { kind: "group"; lockedSetId: string; lockType: LockType; members: LockedGroupMember[]; rank: number };
+
 export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }: QueueLockControlsProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [locking, setLocking]             = useState(false);
 
-  const lockedById = new Map(lockedPlayers.map((lp) => [lp.player_id, lp]));
+  // True individual rank — same priority_score DESC, entered_queue ASC
+  // ordering the matchmaker itself uses — independent of how locked
+  // groups get visually clustered below. A locked player's badge still
+  // shows their real position, never a fabricated shared one.
+  const rankByPlayerId = useMemo(() => {
+    const ranked = [...queue].sort((a, b) => {
+      if (b.priority_score !== a.priority_score) return b.priority_score - a.priority_score;
+      return new Date(a.entered_queue).getTime() - new Date(b.entered_queue).getTime();
+    });
+    return new Map(ranked.map((q, i) => [q.player_id, i + 1]));
+  }, [queue]);
+
+  // Group locked players by locked_set_id, then build one combined list of
+  // "display units" (a group counts as one unit) sorted by each unit's
+  // best-ranked member, so a group sits wherever its most-eligible member
+  // would've ranked alone instead of jumping to the top/bottom arbitrarily.
+  const units = useMemo(() => {
+    const queueById = new Map(queue.map((q) => [q.player_id, q]));
+    const groupsById = new Map<string, { lockType: LockType; playerIds: Set<string> }>();
+
+    for (const lp of lockedPlayers) {
+      if (!groupsById.has(lp.locked_set_id)) {
+        groupsById.set(lp.locked_set_id, { lockType: lp.lock_type as LockType, playerIds: new Set() });
+      }
+      groupsById.get(lp.locked_set_id)!.playerIds.add(lp.player_id);
+    }
+
+    const consumed = new Set<string>();
+    const result: DisplayUnit[] = [];
+
+    for (const [lockedSetId, group] of groupsById) {
+      const members: LockedGroupMember[] = Array.from(group.playerIds)
+        .map((pid) => queueById.get(pid))
+        .filter((entry): entry is QueueRow => !!entry)
+        .map((entry) => ({ entry, rank: rankByPlayerId.get(entry.player_id) ?? Number.MAX_SAFE_INTEGER }))
+        .sort((a, b) => a.rank - b.rank);
+
+      if (members.length === 0) continue; // none of this lock's members are currently waiting
+      members.forEach((m) => consumed.add(m.entry.player_id));
+      result.push({ kind: "group", lockedSetId, lockType: group.lockType, members, rank: members[0].rank });
+    }
+
+    for (const entry of queue) {
+      if (consumed.has(entry.player_id)) continue;
+      result.push({ kind: "single", entry, rank: rankByPlayerId.get(entry.player_id) ?? Number.MAX_SAFE_INTEGER });
+    }
+
+    return result.sort((a, b) => a.rank - b.rank);
+  }, [queue, lockedPlayers, rankByPlayerId]);
 
   function toggleSelectionMode() {
     setSelectionMode((v) => !v);
@@ -65,7 +118,7 @@ export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }
         toast.error(result.error);
         return;
       }
-      toast.success("Locked as partners — guaranteed the same team next match.");
+      toast.success("Locked as partners — guaranteed the same team every match, until you unlock them.");
       exitSelection();
       onChanged();
     } catch {
@@ -131,21 +184,25 @@ export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }
         />
       ) : (
         <div className="space-y-3">
-          {queue.map((entry, i) => (
-            <QueueEntryRow
-              key={entry.queue_id}
-              entry={entry}
-              position={i + 1}
-              lockType={lockedById.get(entry.player_id)?.lock_type as LockType | undefined ?? null}
-              onUnlock={() => {
-                const lockedSetId = lockedById.get(entry.player_id)?.locked_set_id;
-                if (lockedSetId) handleUnlock(lockedSetId);
-              }}
-              selectable={selectionMode}
-              selected={selectedIds.has(entry.player_id)}
-              onToggleSelect={() => toggleSelected(entry.player_id)}
-            />
-          ))}
+          {units.map((unit) =>
+            unit.kind === "group" ? (
+              <LockedGroupCard
+                key={unit.lockedSetId}
+                lockType={unit.lockType}
+                members={unit.members}
+                onUnlock={() => handleUnlock(unit.lockedSetId)}
+              />
+            ) : (
+              <QueueEntryRow
+                key={unit.entry.queue_id}
+                entry={unit.entry}
+                position={unit.rank}
+                selectable={selectionMode}
+                selected={selectedIds.has(unit.entry.player_id)}
+                onToggleSelect={() => toggleSelected(unit.entry.player_id)}
+              />
+            )
+          )}
         </div>
       )}
 

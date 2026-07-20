@@ -21,7 +21,13 @@ interface SidebarItem {
   label:          string;
   href:           string;
   icon:           React.ComponentType<{ className?: string }>;
+  // Courts is live-management-only — Start/Finish/Lock controls make no
+  // sense once a session isn't actively running.
   requiresActive?: boolean;
+  // Leaderboard/Match History are read-only views that stay browsable for
+  // ended/archived "Past Sessions" too — only a still-pending session
+  // (no data yet) blocks them.
+  requiresStarted?: boolean;
 }
 
 interface SidebarProps {
@@ -36,8 +42,8 @@ function useSidebarItems(sessionId: string): SidebarItem[] {
     { label: "Overview",    href: ROUTES.DASHBOARD(sessionId),    icon: LayoutDashboard },
     { label: "Courts",      href: ROUTES.COURTS(sessionId),       icon: Activity,  requiresActive: true },
     { label: "Players",      href: ROUTES.PLAYERS(sessionId),      icon: Users },
-    { label: "Match History", href: ROUTES.MATCHES(sessionId),     icon: History,   requiresActive: true },
-    { label: "Leaderboard",  href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy,    requiresActive: true },
+    { label: "Match History", href: ROUTES.MATCHES(sessionId),     icon: History,   requiresStarted: true },
+    { label: "Leaderboard",  href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy,    requiresStarted: true },
   ];
 }
 
@@ -45,7 +51,8 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const items = useSidebarItems(sessionId);
-  const isSessionActive = sessionStatus === "active";
+  const isSessionActive  = sessionStatus === "active";
+  const hasSessionStarted = sessionStatus !== "pending";
 
   const hostInitials = host?.name
     ? host.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
@@ -74,7 +81,8 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
         {items.map((item) => {
           const isCurrentPage = pathname === item.href ||
             (item.href !== ROUTES.DASHBOARD(sessionId) && pathname.startsWith(item.href));
-          const disabled = item.requiresActive && !isSessionActive;
+          const disabled = (item.requiresActive && !isSessionActive) ||
+            (item.requiresStarted && !hasSessionStarted);
 
           if (disabled) {
             return (
