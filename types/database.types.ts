@@ -19,6 +19,7 @@ export type QueueStatus   = "waiting" | "matched" | "removed" | "resting";
 export type PlayerLevel   = "all_levels" | "beginner" | "intermediate" | "advanced";
 export type SubscriptionPlan   = "free" | "monthly" | "lifetime";
 export type SubscriptionStatus = "active" | "expired" | "cancelled";
+export type LockType = "partner_pair" | "full_match";
 
 export interface Database {
   public: {
@@ -359,6 +360,36 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["reports"]["Insert"]>;
         Relationships: [];
       };
+      locked_sets: {
+        Row: {
+          id:         string;
+          session_id: string;
+          lock_type:  LockType;
+          created_at: string;
+        };
+        Insert: {
+          id?:         string;
+          session_id:  string;
+          lock_type:   LockType;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["locked_sets"]["Insert"]>;
+        Relationships: [];
+      };
+      locked_set_players: {
+        Row: {
+          locked_set_id: string;
+          player_id:     string;
+          team:          TeamSide | null;
+        };
+        Insert: {
+          locked_set_id: string;
+          player_id:     string;
+          team?:         TeamSide | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["locked_set_players"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       queue_with_stats: {
@@ -439,6 +470,17 @@ export interface Database {
           ended_at:      string | null;
           winner_team:   TeamSide | null;
           players:       Json;
+        };
+        Relationships: [];
+      };
+      locked_players_view: {
+        Row: {
+          session_id:    string;
+          locked_set_id: string;
+          lock_type:     LockType;
+          created_at:    string;
+          player_id:     string;
+          team:          TeamSide | null;
         };
         Relationships: [];
       };
@@ -535,6 +577,14 @@ export interface Database {
       create_manual_match: {
         Args: { p_session_id: string; p_team_a: string[]; p_team_b: string[] };
         Returns: string | null;
+      };
+      create_locked_set: {
+        Args: { p_session_id: string; p_lock_type: string; p_players: string[]; p_teams?: TeamSide[] | null };
+        Returns: string | null;
+      };
+      delete_locked_set: {
+        Args: { p_locked_set_id: string };
+        Returns: boolean;
       };
     };
     Enums: {

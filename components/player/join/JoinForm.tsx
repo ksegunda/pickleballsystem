@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { User, ArrowRight, Users, Calendar, Zap } from "lucide-react";
+import { User, ArrowRight, Users, Calendar } from "lucide-react";
 import { generateDeviceToken } from "@/lib/utils/generate-code";
 import { getStoredPlayerIdentity, setStoredPlayerIdentity } from "@/lib/utils/player-identity";
 import { formatDate, formatTime, formatPlayerLevel } from "@/lib/utils/format";
@@ -80,11 +80,7 @@ export function JoinForm({ session, playerLevel }: JoinFormProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Logo */}
       <div className="mb-6 text-center">
-        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-3">
-          <Zap className="h-7 w-7 text-white" />
-        </div>
         <h1 className="text-xl font-bold text-foreground">Join Open Play</h1>
         <p className="mt-1 text-sm text-muted-foreground">You&apos;ve been invited to join</p>
       </div>

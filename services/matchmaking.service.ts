@@ -3,21 +3,24 @@ import { CourtRepository } from "@/repositories/court.repository";
 import { QueueRepository } from "@/repositories/queue.repository";
 import { SessionRepository } from "@/repositories/session.repository";
 import { MatchRepository } from "@/repositories/match.repository";
+import { LockRepository } from "@/repositories/lock.repository";
 import { PLAYERS_PER_MATCH } from "@/lib/constants/status";
 import type { MatchEligibility, ForecastSet, ForecastRow } from "@/types/match.types";
-import type { TeamSide } from "@/types/database.types";
+import type { TeamSide, LockType } from "@/types/database.types";
 
 export class MatchmakingService {
   private courtRepo:   CourtRepository;
   private queueRepo:   QueueRepository;
   private sessionRepo: SessionRepository;
   private matchRepo:   MatchRepository;
+  private lockRepo:    LockRepository;
 
   constructor(private readonly db: TypedSupabaseClient) {
     this.courtRepo   = new CourtRepository(db);
     this.queueRepo   = new QueueRepository(db);
     this.sessionRepo = new SessionRepository(db);
     this.matchRepo   = new MatchRepository(db);
+    this.lockRepo    = new LockRepository(db);
   }
 
   private async getPlayersPerMatch(sessionId: string): Promise<number> {
@@ -31,11 +34,12 @@ export class MatchmakingService {
     // so this self-heals on every page load and every realtime-triggered refresh.
     await this.matchRepo.assignForecastToFreeCourts(sessionId);
 
-    const [courts, queue, playersPerMatch, forecastRows] = await Promise.all([
+    const [courts, queue, playersPerMatch, forecastRows, lockedPlayers] = await Promise.all([
       this.courtRepo.getCourtsWithStatus(sessionId),
       this.queueRepo.getQueueWithStats(sessionId),
       this.getPlayersPerMatch(sessionId),
       this.matchRepo.getForecastPool(sessionId),
+      this.lockRepo.getLockedPlayers(sessionId),
     ]);
 
     const waitingCount = queue.length;
@@ -51,9 +55,20 @@ export class MatchmakingService {
     // apart, so a manual match takes whichever position its age earns it
     // instead of always being pinned to the end (see Bug 5).
     const forecastPool = this.buildForecastPool(courts.length, forecastRows, waitingCount, playersPerMatch);
-    const hasManualSlot = forecastRows.some((row) => row.is_manual);
 
-    return { courts, eligibility, forecastPool, hasManualSlot, queue };
+    return { courts, eligibility, forecastPool, queue, lockedPlayers };
+  }
+
+  async getMatchHistory(sessionId: string) {
+    return this.matchRepo.getMatchHistory(sessionId);
+  }
+
+  async createLockedSet(sessionId: string, lockType: LockType, players: string[], teams?: TeamSide[]): Promise<string | null> {
+    return this.lockRepo.create(sessionId, lockType, players, teams);
+  }
+
+  async deleteLockedSet(lockedSetId: string): Promise<boolean> {
+    return this.lockRepo.delete(lockedSetId);
   }
 
   async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {

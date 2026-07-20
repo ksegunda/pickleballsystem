@@ -13,7 +13,7 @@ export default async function PlayerSessionLayout({ children, params }: PlayerLa
   const { sessionId } = await params;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       <ConnectionBanner />
       <main className="flex-1 pb-20">
         {children}

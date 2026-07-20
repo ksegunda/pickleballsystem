@@ -58,7 +58,7 @@ export function CurrentMatchCard({ match }: CurrentMatchCardProps) {
       {/* Court header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-accent" />
+          <MapPin className="h-4 w-4 text-accent-foreground" />
           <span className="font-semibold text-foreground">
             {isForecasted ? "Upcoming match" : match.court_name}
           </span>
@@ -69,7 +69,7 @@ export function CurrentMatchCard({ match }: CurrentMatchCardProps) {
             <TimerDisplay startedAt={match.started_at} size="sm" />
           </div>
         ) : (
-          <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+          <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
             {isForecasted ? "Reserved" : "Get ready"}
           </span>
         )}

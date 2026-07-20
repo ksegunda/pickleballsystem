@@ -128,10 +128,7 @@ export function LoginForm() {
       </Card>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Players don&apos;t need an account.{" "}
-        <Link href="/join" className="text-primary hover:underline">
-          Join a session →
-        </Link>
+        Players don&apos;t need an account — just scan the QR code your host shows at the venue.
       </p>
     </motion.div>
   );

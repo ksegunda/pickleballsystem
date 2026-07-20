@@ -6,7 +6,7 @@ import { MatchmakingService } from "@/services/matchmaking.service";
 import { ROUTES } from "@/lib/constants/routes";
 import { PLAYERS_PER_MATCH } from "@/lib/constants/status";
 import type { ActionResult } from "./auth.actions";
-import type { TeamSide } from "@/types/database.types";
+import type { TeamSide, LockType } from "@/types/database.types";
 
 export async function getCourtsBoardAction(sessionId: string) {
   try {
@@ -18,9 +18,19 @@ export async function getCourtsBoardAction(sessionId: string) {
       courts: [],
       eligibility: { playersPerMatch: PLAYERS_PER_MATCH, waitingCount: 0, hasEnoughPlayers: false },
       forecastPool: [],
-      hasManualSlot: false,
       queue: [],
+      lockedPlayers: [],
     };
+  }
+}
+
+export async function getMatchHistoryAction(sessionId: string) {
+  try {
+    const supabase = await createClient();
+    const service  = new MatchmakingService(supabase);
+    return await service.getMatchHistory(sessionId);
+  } catch {
+    return [];
   }
 }
 
@@ -66,7 +76,7 @@ export async function createManualMatchAction(
     if (!matchId) {
       return {
         success: false,
-        error: "Could not create this match — one of the selected players may no longer be waiting, or a manual match is already active.",
+        error: "Could not create this match — one of the selected players may no longer be waiting.",
       };
     }
 
@@ -74,6 +84,59 @@ export async function createManualMatchAction(
     return { success: true, data: { matchId } };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to create the match.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function createLockedSetAction(
+  sessionId: string,
+  lockType:  LockType,
+  players:   string[],
+  teams?:    TeamSide[]
+): Promise<ActionResult<{ lockedSetId: string }>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    const lockedSetId = await service.createLockedSet(sessionId, lockType, players, teams);
+
+    if (!lockedSetId) {
+      return {
+        success: false,
+        error: "Could not create this lock — one of the selected players may already be locked.",
+      };
+    }
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: { lockedSetId } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to lock these players.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function deleteLockedSetAction(
+  sessionId:    string,
+  lockedSetId:  string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    const ok = await service.deleteLockedSet(lockedSetId);
+
+    if (!ok) {
+      return { success: false, error: "This lock is already gone." };
+    }
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to unlock these players.";
     return { success: false, error: msg };
   }
 }

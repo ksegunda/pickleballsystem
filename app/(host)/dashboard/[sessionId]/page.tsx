@@ -109,7 +109,6 @@ export default async function DashboardPage({ params }: PageProps) {
           sessionId={sessionId}
           initialCourts={overviewBoard.courts}
           initialForecastPool={overviewBoard.forecastPool}
-          initialHasManualSlot={overviewBoard.hasManualSlot}
           initialQueue={overviewBoard.queue}
           initialLeaderboard={leaderboard}
           playersPerMatch={overviewBoard.eligibility.playersPerMatch}

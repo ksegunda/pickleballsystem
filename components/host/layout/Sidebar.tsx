@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  Zap, LayoutDashboard, Users, Activity, Trophy,
+  Zap, LayoutDashboard, Users, Activity, Trophy, History,
   ChevronRight, LogOut, Menu, X
 } from "lucide-react";
 import { useState } from "react";
@@ -35,8 +35,9 @@ function useSidebarItems(sessionId: string): SidebarItem[] {
   return [
     { label: "Overview",    href: ROUTES.DASHBOARD(sessionId),    icon: LayoutDashboard },
     { label: "Courts",      href: ROUTES.COURTS(sessionId),       icon: Activity,  requiresActive: true },
-    { label: "Players",     href: ROUTES.PLAYERS(sessionId),      icon: Users },
-    { label: "Leaderboard", href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy,    requiresActive: true },
+    { label: "Players",      href: ROUTES.PLAYERS(sessionId),      icon: Users },
+    { label: "Match History", href: ROUTES.MATCHES(sessionId),     icon: History,   requiresActive: true },
+    { label: "Leaderboard",  href: ROUTES.LEADERBOARD(sessionId),  icon: Trophy,    requiresActive: true },
   ];
 }
 

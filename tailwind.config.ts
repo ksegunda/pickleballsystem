@@ -51,33 +51,6 @@ const config: Config = {
           DEFAULT:    "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Brand palette
-        brand: {
-          blue: {
-            50:  "#EFF6FF",
-            100: "#DBEAFE",
-            500: "#3B82F6",
-            600: "#2563EB",
-            700: "#1D4ED8",
-          },
-          green: {
-            50:  "#F0FDF4",
-            500: "#22C55E",
-            600: "#16A34A",
-          },
-          orange: {
-            50:  "#FFF7ED",
-            500: "#F97316",
-            600: "#EA580C",
-          },
-        },
-        // Status colors
-        status: {
-          waiting:  "#2563EB",
-          playing:  "#16A34A",
-          resting:  "#F97316",
-          offline:  "#94A3B8",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",

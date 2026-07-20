@@ -8,8 +8,19 @@
 
 @layer base {
   :root {
-    /* Light Mode */
-    --background:         210 40% 98%;     /* #F8FAFC */
+    /* Light Mode — PaddleSync palette, derived from #F9E8A2 (cream),
+       #B4E1EB (aqua), #95BDD7 (medium blue), #78A4CB (deep blue).
+       Primary/secondary are DEEPENED versions of the medium/deep blues
+       (same hue, lower lightness) rather than the literal hex — the
+       literal pastels fail WCAG contrast as solid-fill-with-white-text
+       or as standalone colored text (e.g. ~2.6:1 for #78A4CB vs white,
+       well under the 4.5:1 minimum). Deepened to ~5:1, matching the
+       accessibility level the previous blue-600 primary already had.
+       The literal pastel tones still show up everywhere via low-opacity
+       fills (bg-primary/10 etc., used throughout this codebase already)
+       and directly as --accent/--muted/--background, which only ever
+       carry dark text on top rather than acting as text color themselves. */
+    --background:         191 35% 97%;     /* faint aqua wash */
     --foreground:         222 47% 11%;     /* #0F172A */
 
     --card:               0 0% 100%;       /* #FFFFFF */
@@ -18,24 +29,24 @@
     --popover:            0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary:            221 83% 53%;     /* #2563EB Blue-600 */
+    --primary:            208 60% 42%;     /* deepened from #78A4CB */
     --primary-foreground: 0 0% 100%;
 
-    --secondary:          142 71% 45%;     /* #16A34A Green-600 */
+    --secondary:          204 58% 40%;     /* deepened from #95BDD7 */
     --secondary-foreground: 0 0% 100%;
 
-    --muted:              214 32% 91%;     /* #E2E8F0 */
-    --muted-foreground:   215 16% 47%;     /* #64748B */
+    --muted:              191 40% 90%;     /* #B4E1EB, lightened for fills */
+    --muted-foreground:   200 15% 38%;
 
-    --accent:             24 94% 53%;      /* #F97316 Orange-500 */
-    --accent-foreground:  0 0% 100%;
+    --accent:             48 88% 81%;      /* #F9E8A2, literal — bg-only */
+    --accent-foreground:  38 45% 22%;      /* dark amber, for text on accent */
 
-    --destructive:        0 84% 60%;       /* #EF4444 */
+    --destructive:        0 84% 60%;       /* #EF4444 — kept, no brand hue reads as "error" */
     --destructive-foreground: 0 0% 100%;
 
-    --border:             214 32% 91%;     /* #E2E8F0 */
-    --input:              214 32% 91%;
-    --ring:               221 83% 53%;
+    --border:             191 25% 88%;
+    --input:              191 25% 88%;
+    --ring:               208 60% 42%;
 
     --radius:             0.75rem;         /* 12px — rounded-xl base */
 
@@ -45,34 +56,37 @@
   }
 
   .dark {
-    /* Dark Mode */
-    --background:         222 47% 11%;     /* #0F172A */
-    --foreground:         210 40% 96%;     /* #F1F5F9 */
+    /* Dark Mode — same hue families as light mode; primary/secondary/
+       accent kept at the same lightness (a light cream/blue chip reads
+       fine against a dark page), only the neutrals shift for a dark
+       surface. */
+    --background:         200 30% 8%;
+    --foreground:         200 25% 94%;
 
-    --card:               217 33% 17%;     /* #1E293B */
-    --card-foreground:    210 40% 96%;
+    --card:               200 25% 13%;
+    --card-foreground:    200 25% 94%;
 
-    --popover:            217 33% 17%;
-    --popover-foreground: 210 40% 96%;
+    --popover:            200 25% 13%;
+    --popover-foreground: 200 25% 94%;
 
-    --primary:            221 83% 53%;     /* #2563EB */
+    --primary:            208 60% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:          142 71% 45%;
+    --secondary:          204 58% 40%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted:              217 33% 25%;     /* #334155 */
-    --muted-foreground:   215 20% 65%;     /* #94A3B8 */
+    --muted:              200 20% 20%;
+    --muted-foreground:   200 15% 65%;
 
-    --accent:             24 94% 53%;
-    --accent-foreground:  0 0% 100%;
+    --accent:             48 88% 81%;
+    --accent-foreground:  38 45% 22%;
 
     --destructive:        0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border:             217 33% 25%;
-    --input:              217 33% 25%;
-    --ring:               221 83% 53%;
+    --border:             200 20% 22%;
+    --input:              200 20% 22%;
+    --ring:               208 60% 42%;
   }
 }
 
@@ -112,7 +126,7 @@
 
   /* ── Gradient text ── */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-blue-400
+    @apply bg-gradient-to-r from-primary to-secondary
            bg-clip-text text-transparent;
   }
 
@@ -161,7 +175,7 @@
   /* ── Mobile: large queue position ── */
   .queue-position-badge {
     @apply relative flex items-center justify-center
-           rounded-full bg-gradient-to-br from-primary to-blue-700
+           rounded-full bg-gradient-to-br from-primary to-secondary
            text-white font-bold shadow-card-lg;
     width: 11rem;
     height: 11rem;

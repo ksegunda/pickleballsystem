@@ -13,19 +13,16 @@ type QueueRow = Database["public"]["Views"]["queue_with_stats"]["Row"];
 interface ForecastPoolSectionProps {
   sessionId:       string;
   sets:            ForecastSet[];
-  hasManualSlot:   boolean;
   queue:           QueueRow[];
   playersPerMatch: number;
   onChanged:       () => void;
 }
 
 export function ForecastPoolSection({
-  sessionId, sets, hasManualSlot, queue, playersPerMatch, onChanged,
+  sessionId, sets, queue, playersPerMatch, onChanged,
 }: ForecastPoolSectionProps) {
   const [editingSet, setEditingSet] = useState<ForecastSet | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  if (sets.length === 0 && !hasManualSlot) return null;
 
   const readyCount = sets.filter((s) => s.matchId !== null).length;
 
@@ -131,7 +128,7 @@ export function ForecastPoolSection({
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sets.map((set) => (set.matchId !== null ? renderCard(set) : renderEmptyCard(set)))}
-        {!hasManualSlot && renderAddManualCard()}
+        {renderAddManualCard()}
       </div>
 
       {editingSet && (

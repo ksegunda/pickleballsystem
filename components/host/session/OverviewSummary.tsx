@@ -26,7 +26,6 @@ interface OverviewSummaryProps {
   sessionId:            string;
   initialCourts:        CourtView[];
   initialForecastPool:  ForecastSet[];
-  initialHasManualSlot: boolean;
   initialQueue:         QueueRow[];
   initialLeaderboard:   LeaderboardRow[];
   playersPerMatch:      number;
@@ -39,12 +38,11 @@ interface OverviewSummaryProps {
 // finishing (which touches matches + queue_entries + player_statistics in
 // one go) triggers one combined refresh instead of several independent ones.
 export function OverviewSummary({
-  sessionId, initialCourts, initialForecastPool, initialHasManualSlot, initialQueue,
+  sessionId, initialCourts, initialForecastPool, initialQueue,
   initialLeaderboard, playersPerMatch,
 }: OverviewSummaryProps) {
   const [courts, setCourts]             = useState(initialCourts);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
-  const [hasManualSlot, setHasManualSlot] = useState(initialHasManualSlot);
   const [queue, setQueue]               = useState(initialQueue);
   const [leaderboard, setLeaderboard]   = useState(initialLeaderboard);
 
@@ -55,7 +53,6 @@ export function OverviewSummary({
     ]);
     setCourts(board.courts);
     setForecastPool(board.forecastPool);
-    setHasManualSlot(board.hasManualSlot);
     setQueue(board.queue);
     setLeaderboard(players);
   }, [sessionId]);
@@ -114,7 +111,6 @@ export function OverviewSummary({
       <ForecastPoolSection
         sessionId={sessionId}
         sets={forecastPool}
-        hasManualSlot={hasManualSlot}
         queue={queue}
         playersPerMatch={playersPerMatch}
         onChanged={refresh}

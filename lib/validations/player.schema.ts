@@ -14,13 +14,4 @@ export const joinSessionSchema = z.object({
   device_token: z.string().uuid("Invalid device token"),
 });
 
-export const enterJoinCodeSchema = z.object({
-  join_code: z
-    .string()
-    .min(1, "Enter your 6-character join code")
-    .length(6, "Join code must be exactly 6 characters")
-    .toUpperCase(),
-});
-
 export type JoinSessionSchema    = z.infer<typeof joinSessionSchema>;
-export type EnterJoinCodeSchema  = z.infer<typeof enterJoinCodeSchema>;

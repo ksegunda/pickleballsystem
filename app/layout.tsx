@@ -12,14 +12,14 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default:  "OpenPlay — Pickleball Queue Management",
-    template: "%s | OpenPlay",
+    default:  "PaddleSync — Pickleball Queue Management",
+    template: "%s | PaddleSync",
   },
   description:
     "Intelligent, fair matchmaking for pickleball open play sessions. " +
     "Real-time queue management, smart rotation, and balanced team generation.",
   keywords:  ["pickleball", "open play", "queue management", "matchmaking"],
-  authors:   [{ name: "OpenPlay" }],
+  authors:   [{ name: "PaddleSync" }],
   manifest:  "/manifest.json",
   icons: {
     icon:              [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor:       [
-    { media: "(prefers-color-scheme: light)", color: "#2563EB" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0F172A" },
+    { media: "(prefers-color-scheme: light)", color: "#2B6FAB" },
+    { media: "(prefers-color-scheme: dark)",  color: "#0E161B" },
   ],
   width:            "device-width",
   initialScale:     1,

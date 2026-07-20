@@ -21,7 +21,7 @@ export default async function JoinWithCodePage({ params }: PageProps) {
   const settings = await service.getSettings(session.id).catch(() => null);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6">
+    <div className="flex flex-1 flex-col items-center justify-center p-6">
       <JoinForm session={session} playerLevel={settings?.player_level ?? null} />
     </div>
   );

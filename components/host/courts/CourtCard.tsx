@@ -52,6 +52,14 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
     if (court.started_at) setOptimisticStartedAt(null);
   }, [court.started_at]);
 
+  // A freshly-promoted match on this same court also has started_at: null,
+  // so the effect above alone never fires across the swap — without this,
+  // a stale optimisticStartedAt from the previous match survives and makes
+  // isInProgress read true for a match that's actually still 'pending'.
+  useEffect(() => {
+    setOptimisticStartedAt(null);
+  }, [court.match_id]);
+
   useEffect(() => {
     setJustFinished(false);
   }, [court.match_id, court.match_status]);
@@ -150,7 +158,7 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
           ) : isInProgress ? (
             <TimerDisplay startedAt={court.started_at ?? optimisticStartedAt} size="sm" />
           ) : (
-            <span className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+            <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
               Ready
             </span>
           )}

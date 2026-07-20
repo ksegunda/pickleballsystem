@@ -28,7 +28,3 @@ export function generateDeviceToken(): string {
     return v.toString(16);
   });
 }
-
-export function normalizeJoinCode(code: string): string {
-  return code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
-}

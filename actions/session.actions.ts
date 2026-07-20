@@ -88,19 +88,6 @@ export async function getHostSessionsAction() {
   }
 }
 
-export async function getSessionByCodeAction(
-  code: string
-): Promise<ActionResult<Session>> {
-  try {
-    const supabase = await createClient();
-    const service  = new SessionService(supabase);
-    const session  = await service.getSessionByJoinCode(code);
-    return { success: true, data: session };
-  } catch {
-    return { success: false, error: "Session not found. Check your join code." };
-  }
-}
-
 export async function getSessionSummaryAction(sessionId: string) {
   const supabase = await createClient();
   const service  = new SessionService(supabase);

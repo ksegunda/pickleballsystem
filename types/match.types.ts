@@ -7,6 +7,7 @@ export type CourtView   = Database["public"]["Views"]["court_status_view"]["Row"
 export type Court       = Database["public"]["Tables"]["courts"]["Row"];
 export type ForecastRow = Database["public"]["Views"]["forecast_pool_view"]["Row"];
 export type MatchHistoryRow = Database["public"]["Views"]["match_history_view"]["Row"];
+export type LockedPlayerRow = Database["public"]["Views"]["locked_players_view"]["Row"];
 
 export interface TeamAssignment {
   team_a: string[];  // player IDs

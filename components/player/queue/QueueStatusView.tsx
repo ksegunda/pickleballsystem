@@ -152,7 +152,7 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
 
   function handleBackToJoin() {
     clearStoredPlayerIdentity(session.id);
-    router.push(ROUTES.JOIN);
+    router.push(ROUTES.THANK_YOU);
   }
 
   async function handleLeave() {
@@ -166,7 +166,7 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
       }
       clearStoredPlayerIdentity(session.id);
       toast.success("You've left the session.");
-      router.push(ROUTES.JOIN);
+      router.push(ROUTES.THANK_YOU);
     } catch {
       toast.error("Could not leave the session. Please try again.");
     } finally {
@@ -307,7 +307,7 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
                   Try Again
                 </Button>
                 <Button size="sm" variant="ghost" onClick={handleBackToJoin}>
-                  Back to Join
+                  Exit
                 </Button>
               </div>
             </div>
@@ -472,9 +472,8 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
               <DialogHeader>
                 <DialogTitle>Leave this session?</DialogTitle>
                 <DialogDescription>
-                  You&apos;ll be taken off the queue and back to the join screen. You can scan
-                  the QR code or enter the join code again later, but you&apos;ll lose your
-                  current queue position.
+                  You&apos;ll be taken off the queue. You can scan the QR code again later
+                  to rejoin, but you&apos;ll lose your current queue position.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2">

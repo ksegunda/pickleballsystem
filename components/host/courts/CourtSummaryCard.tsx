@@ -45,7 +45,7 @@ export function CourtSummaryCard({ court }: CourtSummaryCardProps) {
           ) : isInProgress ? (
             <TimerDisplay startedAt={court.started_at} size="sm" />
           ) : (
-            <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+            <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
               Ready
             </span>
           )}

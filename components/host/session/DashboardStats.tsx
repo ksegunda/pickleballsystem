@@ -63,8 +63,8 @@ export function DashboardStats({ sessionId, session, initialSummary, playersFall
       value: summary?.matches_completed ?? 0,
       sub:   `${summary?.matches_in_progress ?? 0} in progress`,
       icon:  CheckSquare,
-      color: "text-accent",
-      bg:    "bg-accent/10",
+      color: "text-accent-foreground",
+      bg:    "bg-accent/20",
     },
     {
       label: "Avg Duration",
@@ -73,8 +73,8 @@ export function DashboardStats({ sessionId, session, initialSummary, playersFall
         : "—",
       sub:   "per match",
       icon:  Clock,
-      color: "text-orange-500",
-      bg:    "bg-orange-500/10",
+      color: "text-primary",
+      bg:    "bg-primary/10",
     },
   ];
 
