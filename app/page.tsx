@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { Scale, Activity, QrCode, Trophy, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { HeroIllustration } from "@/components/landing/HeroIllustration";
+import { AuthCtaButton } from "@/components/landing/AuthCtaButton";
 
 export const metadata: Metadata = { title: "Fair, Real-Time Pickleball Matchmaking" };
 
@@ -67,9 +66,7 @@ export default async function RootPage() {
               Features
             </a>
           </nav>
-          <Button asChild>
-            <Link href="/login">Host Login</Link>
-          </Button>
+          <AuthCtaButton mode="login">Host Login</AuthCtaButton>
         </div>
       </header>
 
@@ -85,15 +82,13 @@ export default async function RootPage() {
               live court tracking, and instant QR check-in, so you can focus on the game.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link href="/login">
-                  Host Login
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/register">Create an Account</Link>
-              </Button>
+              <AuthCtaButton mode="login" size="lg">
+                Host Login
+                <ArrowRight className="h-4 w-4" />
+              </AuthCtaButton>
+              <AuthCtaButton mode="register" size="lg" variant="outline">
+                Create an Account
+              </AuthCtaButton>
             </div>
           </div>
           <HeroIllustration />
@@ -136,12 +131,10 @@ export default async function RootPage() {
           <p className="mx-auto mt-3 max-w-md text-muted-foreground">
             Set up courts, share a QR code, and let PaddleSync handle the queue.
           </p>
-          <Button size="lg" className="mt-7" asChild>
-            <Link href="/login">
-              Host Login
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <AuthCtaButton mode="login" size="lg" className="mt-7">
+            Host Login
+            <ArrowRight className="h-4 w-4" />
+          </AuthCtaButton>
         </div>
       </section>
 

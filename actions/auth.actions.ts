@@ -14,7 +14,15 @@ export type ActionResult<T = null> =
   | { success: true;  data: T;    error?: never }
   | { success: false; error: string; data?: never };
 
-export async function loginAction(formData: LoginSchema): Promise<ActionResult> {
+// Distinct from ActionResult specifically to carry needsVerification —
+// the one caller (LoginForm) needs to tell "wrong password" apart from
+// "right password, but this email was never confirmed" so it can show
+// the OTP screen instead of a dead-end error toast.
+export type LoginResult =
+  | { success: true; data: null }
+  | { success: false; error: string; needsVerification?: boolean };
+
+export async function loginAction(formData: LoginSchema): Promise<LoginResult> {
   const parsed = loginSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0].message };
@@ -27,6 +35,13 @@ export async function loginAction(formData: LoginSchema): Promise<ActionResult> 
   });
 
   if (error) {
+    if (error.message === "Email not confirmed") {
+      return {
+        success: false,
+        error: "Please verify your email first.",
+        needsVerification: true,
+      };
+    }
     return {
       success: false,
       error: error.message === "Invalid login credentials"
@@ -68,9 +83,38 @@ export async function registerAction(formData: RegisterSchema): Promise<ActionRe
   }
 
   // The `hosts` row is auto-provisioned by the trg_handle_new_host trigger
-  // (migration 006) when the auth.users row is created above.
+  // (migration 006, retimed by 027) — it now fires once this user's email
+  // is actually confirmed via verifyEmailOtpAction below, not here.
 
   revalidatePath("/", "layout");
+  return { success: true, data: null };
+}
+
+export async function verifyEmailOtpAction(email: string, token: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
+
+  if (error) {
+    return {
+      success: false,
+      error: /expired|invalid/i.test(error.message)
+        ? "That code is invalid or expired. Please request a new one."
+        : error.message,
+    };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true, data: null };
+}
+
+export async function resendEmailOtpAction(email: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
   return { success: true, data: null };
 }
 
