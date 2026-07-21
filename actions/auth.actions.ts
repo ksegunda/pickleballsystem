@@ -54,7 +54,11 @@ export async function loginAction(formData: LoginSchema): Promise<LoginResult> {
   return { success: true, data: null };
 }
 
-export async function registerAction(formData: RegisterSchema): Promise<ActionResult> {
+export type RegisterResult =
+  | { success: true;  data: { needsVerification: boolean } }
+  | { success: false; error: string };
+
+export async function registerAction(formData: RegisterSchema): Promise<RegisterResult> {
   const parsed = registerSchema.safeParse(formData);
   if (!parsed.success) {
     return { success: false, error: parsed.error.errors[0].message };
@@ -82,12 +86,18 @@ export async function registerAction(formData: RegisterSchema): Promise<ActionRe
     return { success: false, error: "Account creation failed. Please try again." };
   }
 
-  // The `hosts` row is auto-provisioned by the trg_handle_new_host trigger
-  // (migration 006, retimed by 027) — it now fires once this user's email
-  // is actually confirmed via verifyEmailOtpAction below, not here.
+  // The `hosts` row is auto-provisioned by a trigger (migration 006,
+  // retimed by 027/028) — either immediately (if "Confirm email" is off,
+  // Supabase marks the row confirmed at INSERT and there's no session to
+  // wait on) or once verifyEmailOtpAction confirms it. Either way, no
+  // action needed here.
 
+  // signUp() only returns an active session immediately when Supabase's
+  // "Confirm email" setting is off — in that case the user is already
+  // fully signed in and there's nothing to verify, so don't show the OTP
+  // screen (it would wait forever for an email Supabase never sends).
   revalidatePath("/", "layout");
-  return { success: true, data: null };
+  return { success: true, data: { needsVerification: !data.session } };
 }
 
 export async function verifyEmailOtpAction(email: string, token: string): Promise<ActionResult> {

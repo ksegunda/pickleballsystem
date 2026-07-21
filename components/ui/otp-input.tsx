@@ -21,9 +21,14 @@ export function OtpInput({ length = 6, value, onChange, disabled = false, autoFo
   }, [autoFocus]);
 
   function setDigitAt(index: number, digit: string) {
-    const chars = value.split("");
+    // Array.from(..., mapper) always yields `length` real entries (empty
+    // string for any index past the current value) — value.split("") would
+    // instead leave sparse holes when value is shorter than `index`, and
+    // Array.prototype.join silently skips holes, shifting later digits into
+    // the wrong position in the resulting string.
+    const chars = Array.from({ length }, (_, i) => value[i] ?? "");
     chars[index] = digit;
-    onChange(chars.join("").slice(0, length));
+    onChange(chars.join(""));
   }
 
   function handleChange(index: number, raw: string) {

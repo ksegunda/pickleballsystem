@@ -50,7 +50,13 @@ export function RegisterForm({ compact = false, onSwitchToLogin }: RegisterFormP
         toast.error(result.error);
         return;
       }
-      setPendingEmail(data.email);
+      if (result.data.needsVerification) {
+        setPendingEmail(data.email);
+      } else {
+        // "Confirm email" is off — signUp() already returned an active
+        // session, nothing to verify.
+        router.push("/sessions");
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
