@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Settings" };
 
 export default async function HostSettingsPage() {
   const host = await getHostAction();
-  if (!host) redirect(ROUTES.LOGIN);
+  if (!host) redirect(ROUTES.LOGIN_REDIRECT);
 
   return (
     <div className="min-h-screen bg-background">

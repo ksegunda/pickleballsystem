@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children, params }: DashboardLay
     service.getSession(sessionId).catch(() => null),
   ]);
 
-  if (!host) redirect("/login");
+  if (!host) redirect("/?auth=login");
   if (!session || session.host_id !== host.id) {
     redirect("/sessions");
   }

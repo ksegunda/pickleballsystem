@@ -5,7 +5,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   const user = await getVerifiedUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/?auth=login");
   }
 
   return <>{children}</>;

@@ -68,7 +68,7 @@ export function AuthModal({ open, onOpenChange, initialMode }: AuthModalProps) {
                 exit={{ opacity: 0, x: 16 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <LoginForm compact onSwitchToRegister={() => setMode("register")} />
+                <LoginForm onSwitchToRegister={() => setMode("register")} />
               </motion.div>
             ) : (
               <motion.div
@@ -78,7 +78,7 @@ export function AuthModal({ open, onOpenChange, initialMode }: AuthModalProps) {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <RegisterForm compact onSwitchToLogin={() => setMode("login")} />
+                <RegisterForm onSwitchToLogin={() => setMode("login")} />
               </motion.div>
             )}
           </AnimatePresence>

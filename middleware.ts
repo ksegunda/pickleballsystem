@@ -4,7 +4,6 @@ import type { CookieOptions } from "@supabase/ssr";
 
 const HOST_ROUTES  = ["/sessions", "/dashboard"];
 const ADMIN_ROUTES = ["/admin"];
-const AUTH_ROUTES  = ["/login", "/register"];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -33,18 +32,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-  if (isAuthRoute && user) {
-    return NextResponse.redirect(new URL("/sessions", request.url));
-  }
-
   const isHostRoute  = HOST_ROUTES.some((r) => pathname.startsWith(r));
   const isAdminRoute = ADMIN_ROUTES.some((r) => pathname.startsWith(r));
 
   if ((isHostRoute || isAdminRoute) && !user) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/?auth=login", request.url));
   }
 
   // Suspension only gates the host area — /admin's own layout independently

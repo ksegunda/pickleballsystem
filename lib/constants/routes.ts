@@ -1,8 +1,10 @@
 export const ROUTES = {
   // Public
   HOME:       "/",
-  LOGIN:      "/login",
-  REGISTER:   "/register",
+  // No standalone /login or /register pages anymore — the whole
+  // login/register/verify flow lives in a modal on "/". Redirecting here
+  // opens it automatically (see AuthModalProvider).
+  LOGIN_REDIRECT: "/?auth=login",
 
   // Host
   SESSIONS:   "/sessions",

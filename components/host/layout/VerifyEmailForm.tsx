@@ -2,26 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { MailCheck } from "lucide-react";
 import { verifyEmailOtpAction, resendEmailOtpAction } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/ui/otp-input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { maskEmail } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/cn";
 
 const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECS = 45;
 
 interface VerifyEmailFormProps {
   email:      string;
-  compact?:   boolean;
   onVerified: () => void;
   onBack:     () => void;
 }
 
-export function VerifyEmailForm({ email, compact = false, onVerified, onBack }: VerifyEmailFormProps) {
+// Only ever rendered inside AuthModal, from LoginForm/RegisterForm — never
+// a standalone page.
+export function VerifyEmailForm({ email, onVerified, onBack }: VerifyEmailFormProps) {
   const [code, setCode]           = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
@@ -80,9 +79,9 @@ export function VerifyEmailForm({ email, compact = false, onVerified, onBack }: 
     }
   }
 
-  const body = (
-    <>
-      <CardHeader className={cn("items-center text-center", compact && "px-0 pb-4 pt-0")}>
+  return (
+    <div>
+      <CardHeader className="items-center px-0 pb-4 pt-0 text-center">
         <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
           <MailCheck className="h-5 w-5 text-primary" />
         </div>
@@ -92,7 +91,7 @@ export function VerifyEmailForm({ email, compact = false, onVerified, onBack }: 
         </CardDescription>
       </CardHeader>
 
-      <CardContent className={cn("space-y-4", compact && "px-0")}>
+      <CardContent className="space-y-4 px-0">
         <OtpInput
           length={OTP_LENGTH}
           value={code}
@@ -105,7 +104,7 @@ export function VerifyEmailForm({ email, compact = false, onVerified, onBack }: 
         )}
       </CardContent>
 
-      <CardFooter className={cn("flex flex-col gap-3 pt-2", compact && "px-0 pb-0")}>
+      <CardFooter className="flex flex-col gap-3 px-0 pb-0 pt-2">
         <Button
           className="w-full"
           size="lg"
@@ -136,20 +135,6 @@ export function VerifyEmailForm({ email, compact = false, onVerified, onBack }: 
           Use a different email
         </button>
       </CardFooter>
-    </>
-  );
-
-  if (compact) {
-    return <div>{body}</div>;
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-    >
-      <Card>{body}</Card>
-    </motion.div>
+    </div>
   );
 }

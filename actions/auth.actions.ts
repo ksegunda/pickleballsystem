@@ -131,7 +131,7 @@ export async function resendEmailOtpAction(email: string): Promise<ActionResult>
 export async function logoutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
 
 export async function getHostAction(): Promise<Host | null> {
