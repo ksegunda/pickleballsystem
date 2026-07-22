@@ -51,6 +51,29 @@ function parseArgs() {
   return { sessionId, count };
 }
 
+const FIRST_NAMES = [
+  "David", "Miguel", "Bianca", "Josh", "Angel", "Rafael", "Nicole", "Carlo",
+  "Mika", "Andrei", "Kiana", "Marco", "Sophia", "Luis", "Camille", "Nathan",
+  "Pia", "Jerome", "Trisha", "Kevin", "Jasmine", "Patrick", "Leah", "Aaron",
+  "Diane", "Ryan", "Abby", "Christian", "Erika", "Lance", "Vince", "Hannah",
+  "Mark", "Bea", "JC", "Andrea", "Kyle", "Janine", "Felix", "Rica",
+];
+
+function pickUniqueNames(count: number): string[] {
+  const shuffled = [...FIRST_NAMES].sort(() => Math.random() - 0.5);
+  const names: string[] = [];
+  const baseCycle = [...shuffled];
+
+  let round = 0;
+  while (names.length < count) {
+    const name = baseCycle[names.length % baseCycle.length];
+    names.push(round === 0 ? name : `${name} ${round + 1}`);
+    if ((names.length % baseCycle.length) === 0) round++;
+  }
+
+  return names;
+}
+
 async function main() {
   const { sessionId, count } = parseArgs();
 
@@ -76,15 +99,12 @@ async function main() {
 
   console.log(`Seeding ${count} fake players into "${session.session_name}" (${session.status})...`);
 
-  const suffixWidth = String(count).length;
-  const players = Array.from({ length: count }, (_, i) => {
-    const n = String(i + 1).padStart(suffixWidth, "0");
-    return {
-      session_id:   sessionId,
-      display_name: `Test Player ${n}`,
-      device_token: `test-${randomUUID()}`,
-    };
-  });
+  const names = pickUniqueNames(count);
+  const players = Array.from({ length: count }, (_, i) => ({
+    session_id:   sessionId,
+    display_name: names[i],
+    device_token: `test-${randomUUID()}`,
+  }));
 
   const { data: insertedPlayers, error: playersError } = await supabase
     .from("players")
@@ -114,8 +134,8 @@ async function main() {
   await supabase.rpc("recalculate_priority_scores", { p_session_id: sessionId });
   await supabase.rpc("recalculate_queue_positions", { p_session_id: sessionId });
 
-  console.log(`Done. Inserted ${insertedPlayers.length} players, all named "Test Player NN" with a`);
-  console.log(`"test-" device_token prefix — grep for either to identify or bulk-delete them later.`);
+  console.log(`Done. Inserted ${insertedPlayers.length} players with random display names.`);
+  console.log(`All have a "test-" device_token prefix — use it to identify or bulk-delete them later.`);
 }
 
 main();
