@@ -24,7 +24,7 @@ interface CourtCardProps {
   // the card would otherwise wait on that push indefinitely with no
   // fallback, which is what made Bug 4's "Wrapping up…" spinner hang.
   onStalledRefresh:  () => void;
-  onEditPlayers:     () => void;
+  onEditPlayers:     (matchId: string) => void;
 }
 
 const STALL_TIMEOUT_MS = 7000;
@@ -160,7 +160,7 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
                 size="icon"
                 className="h-7 w-7"
                 title="Edit players"
-                onClick={onEditPlayers}
+                onClick={() => onEditPlayers(court.match_id!)}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>

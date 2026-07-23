@@ -72,6 +72,13 @@ export class MatchmakingService {
     return this.courtRepo.getCourtsWithStatus(sessionId);
   }
 
+  // Same read the host's Courts board already shows — public_read_queue
+  // RLS scopes it to this session regardless of caller, so this is safe to
+  // expose to any player, not just the host.
+  async getPublicQueue(sessionId: string) {
+    return this.queueRepo.getQueueWithStats(sessionId);
+  }
+
   async createLockedSet(sessionId: string, lockType: LockType, players: string[], teams?: TeamSide[]): Promise<string | null> {
     return this.lockRepo.create(sessionId, lockType, players, teams);
   }
@@ -84,8 +91,8 @@ export class MatchmakingService {
     return this.lockRepo.delete(lockedSetId);
   }
 
-  async movePlayer(playerId: string, destMatchId: string | null, destTeam: TeamSide | null): Promise<boolean> {
-    return this.matchRepo.movePlayer(playerId, destMatchId, destTeam);
+  async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
+    return this.matchRepo.updateTeams(matchId, teamA, teamB);
   }
 
   async createManualMatch(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {

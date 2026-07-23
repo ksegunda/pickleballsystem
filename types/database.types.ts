@@ -574,8 +574,8 @@ export interface Database {
         Args: { p_player_id: string; p_resting: boolean; p_device_token?: string | null };
         Returns: boolean;
       };
-      move_player: {
-        Args: { p_player_id: string; p_dest_match_id: string | null; p_dest_team: TeamSide | null };
+      update_match_teams: {
+        Args: { p_match_id: string; p_team_a: string[]; p_team_b: string[] };
         Returns: boolean;
       };
       create_manual_match: {

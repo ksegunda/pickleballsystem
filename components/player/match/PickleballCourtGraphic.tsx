@@ -1,12 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils/cn";
-import type { MatchPlayerView } from "@/types/match.types";
+
+// Only what the graphic actually renders — an avatar initial and a name.
+// MatchPlayerView (Play tab) and the plain court_status_view player rows
+// (Courts tab) both satisfy this without either needing to reshape.
+interface CourtPlayer {
+  player_id:    string;
+  display_name: string;
+}
 
 interface PickleballCourtGraphicProps {
-  topTeam:    MatchPlayerView[];
-  bottomTeam: MatchPlayerView[];
+  topTeam:    CourtPlayer[];
+  bottomTeam: CourtPlayer[];
   meId:       string;
   // Forecasted (Next Up) sets don't have a real court yet — dims the
   // markings so the graphic reads as "not real yet" rather than implying
@@ -14,6 +22,15 @@ interface PickleballCourtGraphicProps {
   // pending (promoted to a real court, host just hasn't hit Start) stays
   // full-bright, since that one's the real thing already.
   reserved?: boolean;
+  // Smaller avatars/text for the multi-court grid (Courts tab), where many
+  // of these render at once — the single-match Play tab never sets this,
+  // so its sizing is unchanged.
+  compact?: boolean;
+  // Optional label/status bar overlaid on the graphic itself (court name +
+  // live timer, for the Courts tab's many-cards-at-once grid) instead of a
+  // separate header row above it. Play tab's CurrentMatchCard keeps its
+  // own header row and never passes this.
+  header?: ReactNode;
 }
 
 function initials(name: string): string {
@@ -26,23 +43,29 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function PlayerChip({ player, isMe }: { player: MatchPlayerView; isMe: boolean }) {
+function PlayerChip({ player, isMe, compact }: { player: CourtPlayer; isMe: boolean; compact?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1 text-center">
-      <Avatar className={cn("h-11 w-11 shadow-card", isMe && "ring-2 ring-white")}>
+      <Avatar className={cn(compact ? "h-7 w-7" : "h-11 w-11", "shadow-card", isMe && "ring-2 ring-white")}>
         <AvatarFallback
           className={cn(
-            "text-[13px] font-extrabold",
+            compact ? "text-[9.5px]" : "text-[13px]",
+            "font-extrabold",
             isMe ? "bg-primary text-primary-foreground" : "bg-white/95 text-foreground"
           )}
         >
           {initials(player.display_name)}
         </AvatarFallback>
       </Avatar>
-      <p className="max-w-[72px] truncate text-[11px] font-bold text-white [text-shadow:0_1px_3px_rgb(0_0_0_/_0.45)]">
+      <p
+        className={cn(
+          compact ? "max-w-[56px] text-[8.5px]" : "max-w-[72px] text-[11px]",
+          "truncate font-bold text-white [text-shadow:0_1px_3px_rgb(0_0_0_/_0.45)]"
+        )}
+      >
         {player.display_name}
       </p>
-      {isMe && (
+      {isMe && !compact && (
         <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[8.5px] font-bold tracking-wide text-white">
           You
         </span>
@@ -61,7 +84,7 @@ function PlayerChip({ player, isMe }: { player: MatchPlayerView; isMe: boolean }
 // Player chips are regular HTML laid over the SVG via the grid below, not
 // SVG text — names truncate/wrap/localize normally this way instead of
 // fighting SVG's text layout model.
-export function PickleballCourtGraphic({ topTeam, bottomTeam, meId, reserved }: PickleballCourtGraphicProps) {
+export function PickleballCourtGraphic({ topTeam, bottomTeam, meId, reserved, compact, header }: PickleballCourtGraphicProps) {
   return (
     <div
       className="relative w-full overflow-hidden rounded-2xl bg-secondary shadow-card-lg"
@@ -86,20 +109,37 @@ export function PickleballCourtGraphic({ topTeam, bottomTeam, meId, reserved }: 
         <line x1="24" y1="200" x2="276" y2="200" stroke="#fff" strokeWidth="1" strokeDasharray="4 4" opacity="0.6" />
       </svg>
 
-      <div className="absolute inset-0 grid grid-rows-[1fr_auto_1fr] p-3.5">
-        <div className={cn("grid content-start gap-2", topTeam.length === 1 ? "grid-cols-1 justify-items-center" : "grid-cols-2")}>
+      {header && (
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between p-2">
+          {header}
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "absolute inset-0 grid grid-rows-[1fr_auto_1fr]",
+          compact ? "p-1.5" : "p-3.5",
+          header && (compact ? "pt-6" : "pt-9")
+        )}
+      >
+        <div className={cn("grid content-start", compact ? "gap-1" : "gap-2", topTeam.length === 1 ? "grid-cols-1 justify-items-center" : "grid-cols-2")}>
           {topTeam.map((p) => (
-            <PlayerChip key={p.player_id} player={p} isMe={p.player_id === meId} />
+            <PlayerChip key={p.player_id} player={p} isMe={p.player_id === meId} compact={compact} />
           ))}
         </div>
         <div className="flex items-center justify-center">
-          <span className="rounded-full bg-white/95 px-2.5 py-1 text-[9.5px] font-extrabold uppercase tracking-wide text-foreground shadow">
+          <span
+            className={cn(
+              "rounded-full bg-white/95 font-extrabold uppercase tracking-wide text-foreground shadow",
+              compact ? "px-2 py-0.5 text-[7px]" : "px-2.5 py-1 text-[9.5px]"
+            )}
+          >
             Net
           </span>
         </div>
-        <div className={cn("grid content-end gap-2", bottomTeam.length === 1 ? "grid-cols-1 justify-items-center" : "grid-cols-2")}>
+        <div className={cn("grid content-end", compact ? "gap-1" : "gap-2", bottomTeam.length === 1 ? "grid-cols-1 justify-items-center" : "grid-cols-2")}>
           {bottomTeam.map((p) => (
-            <PlayerChip key={p.player_id} player={p} isMe={p.player_id === meId} />
+            <PlayerChip key={p.player_id} player={p} isMe={p.player_id === meId} compact={compact} />
           ))}
         </div>
       </div>

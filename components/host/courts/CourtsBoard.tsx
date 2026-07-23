@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getCourtsBoardAction } from "@/actions/match.actions";
 import { useConnectionStatus } from "@/lib/hooks/useConnectionStatus";
 import { CourtCard } from "./CourtCard";
 import { ForecastPoolSection } from "./ForecastPoolSection";
 import { QueueLockControls } from "./QueueLockControls";
-import { RosterEditorDrawer } from "./RosterEditorDrawer";
+import { TeamEditModal } from "./TeamEditModal";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import type { CourtView, MatchEligibility, ForecastSet, LockedPlayerRow } from "@/types/match.types";
-import type { Database } from "@/types/database.types";
+import type { Database, TeamSide } from "@/types/database.types";
 
 type QueueRow = Database["public"]["Views"]["queue_with_stats"]["Row"];
 
@@ -31,7 +31,31 @@ export function CourtsBoard({
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
   const [queue, setQueue]             = useState(initialQueue);
   const [lockedPlayers, setLockedPlayers] = useState(initialLockedPlayers);
-  const [editorOpen, setEditorOpen]   = useState(false);
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+
+  // Looks up whichever court/set the host just clicked "edit players" on —
+  // the modal only ever needs this one match's own roster, not the whole
+  // board, now that editing can't reach outside it.
+  const editingMatch = useMemo(() => {
+    if (!editingMatchId) return null;
+    const court = courts.find((c) => c.match_id === editingMatchId);
+    if (court) {
+      return {
+        matchId: editingMatchId,
+        label:   court.court_name,
+        players: (court.players as unknown as Array<{ player_id: string; display_name: string; team: TeamSide }>) ?? [],
+      };
+    }
+    const set = forecastPool.find((s) => s.matchId === editingMatchId);
+    if (set) {
+      return {
+        matchId: editingMatchId,
+        label:   set.isManual ? "Manual" : `Set ${set.setNumber}`,
+        players: set.players,
+      };
+    }
+    return null;
+  }, [editingMatchId, courts, forecastPool]);
 
   const refresh = useCallback(async () => {
     const board = await getCourtsBoardAction(sessionId);
@@ -125,7 +149,7 @@ export function CourtsBoard({
             hasEnoughPlayers={eligibility.hasEnoughPlayers}
             playersPerMatch={eligibility.playersPerMatch}
             onStalledRefresh={refresh}
-            onEditPlayers={() => setEditorOpen(true)}
+            onEditPlayers={setEditingMatchId}
           />
         ))}
       </div>
@@ -135,7 +159,7 @@ export function CourtsBoard({
         queue={queue}
         playersPerMatch={eligibility.playersPerMatch}
         onChanged={scheduleRefresh}
-        onEditPlayers={() => setEditorOpen(true)}
+        onEditPlayers={setEditingMatchId}
       />
 
       <QueueLockControls
@@ -145,15 +169,15 @@ export function CourtsBoard({
         onChanged={scheduleRefresh}
       />
 
-      <RosterEditorDrawer
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
+      <TeamEditModal
+        open={editingMatchId !== null}
+        onOpenChange={(open) => !open && setEditingMatchId(null)}
         sessionId={sessionId}
-        courts={courts}
-        forecastPool={forecastPool}
-        queue={queue}
+        matchId={editingMatch?.matchId ?? null}
+        label={editingMatch?.label ?? ""}
+        players={editingMatch?.players ?? []}
         playersPerMatch={eligibility.playersPerMatch}
-        onChanged={scheduleRefresh}
+        onSaved={scheduleRefresh}
       />
     </div>
   );

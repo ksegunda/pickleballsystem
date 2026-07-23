@@ -18,7 +18,7 @@ interface ForecastPoolSectionProps {
   queue:           QueueRow[];
   playersPerMatch: number;
   onChanged:       () => void;
-  onEditPlayers:   () => void;
+  onEditPlayers:   (matchId: string) => void;
 }
 
 export function ForecastPoolSection({
@@ -57,7 +57,7 @@ export function ForecastPoolSection({
       <Card
         key={set.matchId}
         className="cursor-pointer transition-colors hover:border-primary/50"
-        onClick={onEditPlayers}
+        onClick={() => onEditPlayers(set.matchId!)}
       >
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">

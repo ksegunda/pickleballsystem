@@ -46,11 +46,23 @@ export async function getAllCourtsAction(sessionId: string) {
   }
 }
 
-export async function movePlayerAction(
-  sessionId:   string,
-  playerId:    string,
-  destMatchId: string | null,
-  destTeam:    TeamSide | null
+// Public/player-facing, same reasoning as getAllCourtsAction — the Courts
+// tab's queue list is visible to every player, not just the host.
+export async function getPublicQueueAction(sessionId: string) {
+  try {
+    const supabase = await createClient();
+    const service  = new MatchmakingService(supabase);
+    return await service.getPublicQueue(sessionId);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateMatchTeamsAction(
+  sessionId: string,
+  matchId:   string,
+  teamA:     string[],
+  teamB:     string[]
 ): Promise<ActionResult<null>> {
   try {
     const supabase = await createClient();
@@ -58,20 +70,16 @@ export async function movePlayerAction(
     if (!user) return { success: false, error: "Unauthorized" };
 
     const service = new MatchmakingService(supabase);
-    const ok = await service.movePlayer(playerId, destMatchId, destTeam);
+    const ok = await service.updateMatchTeams(matchId, teamA, teamB);
 
     if (!ok) {
-      return { success: false, error: "Could not move this player — that spot may already be full, or things changed since you loaded this page." };
+      return { success: false, error: "Could not save these teams — this match may have already started, or things changed since you loaded this page." };
     }
 
     revalidatePath(ROUTES.COURTS(sessionId));
     return { success: true, data: null };
   } catch (err) {
-    // Temporary diagnostic — surfaces the real cause in Vercel Logs while
-    // the roster-editor error report is still unreproduced. Purely
-    // additive, no behavior change; remove once the root cause is found.
-    console.error("movePlayerAction failed:", { sessionId, playerId, destMatchId, destTeam, err });
-    const msg = err instanceof Error ? err.message : "Failed to move this player.";
+    const msg = err instanceof Error ? err.message : "Failed to save these teams.";
     return { success: false, error: msg };
   }
 }
