@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Clock, Users, RefreshCw, Coffee, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Users, RefreshCw, Coffee, LogOut, CheckCircle2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   getPlayerContextAction, getCurrentMatchAction, leaveSessionAction, setRestingAction,
@@ -351,74 +351,52 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
             exit={{ opacity: 0 }}
             className="space-y-5"
           >
-            {/* Main queue position badge */}
-            <div className="flex flex-col items-center py-6">
-              <AnimatePresence mode="wait">
-                {isResting ? (
-                  <motion.div key="resting" className="flex flex-col items-center gap-3">
-                    <div className="flex h-44 w-44 items-center justify-center rounded-full bg-muted shadow-card">
-                      <Coffee className="h-12 w-12 text-muted-foreground" />
+            {/* Queue position / rest / offline */}
+            <AnimatePresence mode="wait">
+              {isResting ? (
+                <motion.div key="resting" className="space-y-4">
+                  <div className="flex flex-col items-center gap-3 rounded-3xl bg-muted px-6 py-8 text-center shadow-card">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card shadow-card">
+                      <Coffee className="h-7 w-7 text-muted-foreground" />
                     </div>
-                    <div className="text-center">
+                    <div>
                       <p className="text-lg font-semibold text-foreground">You&apos;re resting</p>
                       <p className="text-sm text-muted-foreground">Tap &quot;I&apos;m Back&quot; when you&apos;re ready to queue again.</p>
                     </div>
-                  </motion.div>
-                ) : position !== null ? (
-                  <motion.div
-                    key={`pos-${position}`}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="flex flex-col items-center gap-3"
-                  >
-                    <div className="queue-position-badge">
-                      <span>#{position}</span>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-semibold text-foreground">Your Queue Position</p>
-                      <p className="text-sm text-muted-foreground">
-                        {position === 1
-                          ? "You're next up!"
-                          : position <= 4
-                          ? "Almost there!"
-                          : `${position - 1} players ahead of you`}
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div key="offline" className="flex flex-col items-center gap-3">
-                    <div className="flex h-44 w-44 items-center justify-center rounded-full bg-muted shadow-card">
-                      <Users className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                    <p className="text-muted-foreground text-sm">Not in queue</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Status card */}
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <PlayerStatusBadge status={player?.status ?? "offline"} />
-                </div>
-                {position !== null && waitSecs > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" /> Waiting
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">{formatWaitTime(waitSecs)}</span>
                   </div>
-                )}
-                {player && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Name</span>
-                    <span className="text-sm font-semibold">{player.display_name}</span>
+                  <QueueStatusStrip player={player} />
+                </motion.div>
+              ) : position !== null ? (
+                <motion.div
+                  key={`pos-${position}`}
+                  initial={{ scale: 0.94, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="space-y-4"
+                >
+                  <div className="rounded-3xl bg-gradient-to-br from-primary to-secondary px-6 py-7 text-center text-primary-foreground shadow-card-lg">
+                    <p className="text-5xl font-extrabold tabular-nums leading-none">#{position}</p>
+                    <p className="mt-2 text-[11px] font-bold uppercase tracking-wide opacity-85">
+                      Your Queue Position
+                    </p>
+                    <p className="mt-3 text-sm font-semibold">
+                      {position === 1
+                        ? "You're next up!"
+                        : position <= 4
+                        ? "Almost there!"
+                        : `${position - 1} players ahead of you`}
+                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <QueueStatusStrip player={player} waitSecs={waitSecs} />
+                </motion.div>
+              ) : (
+                <motion.div key="offline" className="flex flex-col items-center gap-3 py-6">
+                  <div className="flex h-44 w-44 items-center justify-center rounded-full bg-muted shadow-card">
+                    <Users className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground text-sm">Not in queue</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -498,6 +476,32 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
         <RefreshCw className="h-3.5 w-3.5" />
         Refresh
       </Button>
+    </div>
+  );
+}
+
+// Replaces the old separately-spaced "Status card" — folds wait time,
+// status, and name into one glanceable 3-cell strip under the position
+// card instead of a stack of individually-labeled rows.
+function QueueStatusStrip({ player, waitSecs }: { player: PlayerWithStats | null; waitSecs?: number }) {
+  return (
+    <div className="flex divide-x divide-border overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+      <div className="flex-1 px-2 py-3 text-center">
+        <p className="text-sm font-extrabold tabular-nums text-foreground">
+          {waitSecs && waitSecs > 0 ? formatWaitTime(waitSecs) : "—"}
+        </p>
+        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Waiting</p>
+      </div>
+      <div className="flex-1 px-2 py-3 text-center">
+        <div className="flex justify-center">
+          <PlayerStatusBadge status={player?.status ?? "offline"} />
+        </div>
+        <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Status</p>
+      </div>
+      <div className="flex-1 px-2 py-3 text-center">
+        <p className="truncate text-sm font-extrabold text-foreground">{player?.display_name ?? "—"}</p>
+        <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Name</p>
+      </div>
     </div>
   );
 }

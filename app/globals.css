@@ -171,17 +171,6 @@
   .court-ready        { @apply border-l-4 border-l-accent; }
   .court-occupied     { @apply border-l-4 border-l-primary; }
   .court-maintenance  { @apply border-l-4 border-l-orange-400; }
-
-  /* ── Mobile: large queue position ── */
-  .queue-position-badge {
-    @apply relative flex items-center justify-center
-           rounded-full bg-gradient-to-br from-primary to-secondary
-           text-white font-bold shadow-card-lg;
-    width: 11rem;
-    height: 11rem;
-    font-size: 4rem;
-    line-height: 1;
-  }
 }
 
 @layer utilities {

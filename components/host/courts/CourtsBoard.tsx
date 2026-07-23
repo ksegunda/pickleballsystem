@@ -42,6 +42,30 @@ export function CourtsBoard({
     setLockedPlayers(board.lockedPlayers);
   }, [sessionId]);
 
+  // Coalesces bursts of triggers (a drag-drop's own postgres_changes echoes,
+  // rapid successive drags while the roster editor is open) into one
+  // refetch instead of one per event — each refresh re-runs a real write
+  // RPC pipeline (assignForecastToFreeCourts -> forecast_next_sets), so
+  // firing it on every single table event was both wasteful and prone to
+  // landing mid-drag and interrupting the gesture. Trailing-edge: the
+  // fetch fires REFRESH_DEBOUNCE_MS after the LAST trigger, not the first.
+  const REFRESH_DEBOUNCE_MS = 400;
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshTimeoutRef.current = null;
+      refresh();
+    }, REFRESH_DEBOUNCE_MS);
+  }, [refresh]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase.channel(`session:${sessionId}:courts-board`);
@@ -50,13 +74,13 @@ export function CourtsBoard({
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table, filter: `session_id=eq.${sessionId}` },
-        () => refresh()
+        () => scheduleRefresh()
       );
     }
     channel.subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [sessionId, refresh]);
+  }, [sessionId, scheduleRefresh]);
 
   // Safety net for a realtime push that's late or silently dropped (see Bug 1
   // findings — CourtCard's optimistic update covers the moment of the click,
@@ -110,7 +134,7 @@ export function CourtsBoard({
         sets={forecastPool}
         queue={queue}
         playersPerMatch={eligibility.playersPerMatch}
-        onChanged={refresh}
+        onChanged={scheduleRefresh}
         onEditPlayers={() => setEditorOpen(true)}
       />
 
@@ -118,7 +142,7 @@ export function CourtsBoard({
         sessionId={sessionId}
         queue={queue}
         lockedPlayers={lockedPlayers}
-        onChanged={refresh}
+        onChanged={scheduleRefresh}
       />
 
       <RosterEditorDrawer
@@ -129,7 +153,7 @@ export function CourtsBoard({
         forecastPool={forecastPool}
         queue={queue}
         playersPerMatch={eligibility.playersPerMatch}
-        onChanged={refresh}
+        onChanged={scheduleRefresh}
       />
     </div>
   );

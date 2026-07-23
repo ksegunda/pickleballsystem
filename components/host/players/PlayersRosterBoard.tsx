@@ -122,7 +122,7 @@ export function PlayersRosterBoard({ sessionId, initialPlayers }: PlayersRosterB
 
       <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row">
         <Input
-          placeholder="Player name (no phone needed)"
+          placeholder="Player name"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           maxLength={30}

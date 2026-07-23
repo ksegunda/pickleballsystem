@@ -67,6 +67,10 @@ export async function movePlayerAction(
     revalidatePath(ROUTES.COURTS(sessionId));
     return { success: true, data: null };
   } catch (err) {
+    // Temporary diagnostic — surfaces the real cause in Vercel Logs while
+    // the roster-editor error report is still unreproduced. Purely
+    // additive, no behavior change; remove once the root cause is found.
+    console.error("movePlayerAction failed:", { sessionId, playerId, destMatchId, destTeam, err });
     const msg = err instanceof Error ? err.message : "Failed to move this player.";
     return { success: false, error: msg };
   }

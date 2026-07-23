@@ -51,6 +51,7 @@ export function ForecastPoolSection({
     const label = set.isManual ? "Manual" : `Set ${set.setNumber}`;
     const teamA = set.players.filter((p) => p.team === "team_a");
     const teamB = set.players.filter((p) => p.team === "team_b");
+    const isIncomplete = teamA.length !== teamB.length || teamA.length + teamB.length !== playersPerMatch;
 
     return (
       <Card
@@ -59,9 +60,16 @@ export function ForecastPoolSection({
         onClick={onEditPlayers}
       >
         <CardContent className="p-4 space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {label}
+            </p>
+            {isIncomplete && (
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                Incomplete
+              </span>
+            )}
+          </div>
 
           {teamB.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 text-sm">

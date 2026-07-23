@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -37,7 +37,12 @@ function parseZone(id: ZoneId): { matchId: string | null; team: TeamSide | null 
   return { matchId, team: team as TeamSide };
 }
 
-function DraggableChip({ id, name, disabled }: { id: string; name: string; disabled?: boolean }) {
+// Props are all primitives, so React.memo's default shallow compare is
+// enough to skip this chip's re-render (and its Framer Motion layout
+// remeasure) whenever a board refresh leaves this specific player's id/name
+// unchanged — even though the parent's derived arrays get new references
+// on every refetch.
+const DraggableChip = memo(function DraggableChip({ id, name, disabled }: { id: string; name: string; disabled?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, disabled });
 
   return (
@@ -53,16 +58,32 @@ function DraggableChip({ id, name, disabled }: { id: string; name: string; disab
       <span className="truncate">{name}</span>
     </div>
   );
-}
+});
 
-function DropZone({
-  id, label, players, full,
-}: {
+interface DropZoneProps {
   id: ZoneId;
   label: string;
   players: Array<{ player_id: string; display_name: string }>;
   full?: boolean;
-}) {
+}
+
+// players is a freshly-filtered array on every parent render, so the
+// default reference-equality shallow compare would never skip a
+// re-render — this custom comparator checks the actual membership
+// instead, so a board refresh that leaves this zone's roster untouched
+// (the common case — most drops only touch two of the many zones on
+// screen) skips re-rendering and re-measuring it entirely.
+function dropZonePropsEqual(prev: DropZoneProps, next: DropZoneProps): boolean {
+  return (
+    prev.id === next.id &&
+    prev.label === next.label &&
+    prev.full === next.full &&
+    prev.players.length === next.players.length &&
+    prev.players.every((p, i) => p.player_id === next.players[i]?.player_id)
+  );
+}
+
+const DropZone = memo(function DropZone({ id, label, players, full }: DropZoneProps) {
   const { setNodeRef, isOver } = useDroppable({ id, disabled: full });
 
   return (
@@ -84,7 +105,7 @@ function DropZone({
       </div>
     </div>
   );
-}
+}, dropZonePropsEqual);
 
 export function RosterEditorDrawer({
   open, onOpenChange, sessionId, courts, forecastPool, queue, playersPerMatch, onChanged,
@@ -94,8 +115,12 @@ export function RosterEditorDrawer({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const teamCap = Math.ceil(playersPerMatch / 2);
 
-  const activeSets   = forecastPool.filter((s) => s.matchId !== null);
-  const activeCourts = courts.filter((c) => c.match_id !== null);
+  // Keeps the same array reference across renders that don't actually
+  // change forecastPool/courts (e.g. the moving/setMoving toggle around
+  // every drag-drop save) — pairs with DraggableChip/DropZone's memoization
+  // below so an in-flight drag isn't disturbed by unrelated local state.
+  const activeSets   = useMemo(() => forecastPool.filter((s) => s.matchId !== null), [forecastPool]);
+  const activeCourts = useMemo(() => courts.filter((c) => c.match_id !== null), [courts]);
 
   async function handleDragEnd(event: DragEndEvent) {
     const zone = event.over?.id;
@@ -112,7 +137,12 @@ export function RosterEditorDrawer({
         return;
       }
       onChanged();
-    } catch {
+    } catch (err) {
+      // Temporary diagnostic — this catch means movePlayerAction itself
+      // threw/rejected (a transport-level failure, not an RPC "couldn't do
+      // it") and the toast below hides which. Purely additive, no behavior
+      // change; remove once the roster-editor error report is reproduced.
+      console.error("Roster editor move failed:", { playerId, matchId, team, err });
       toast.error("Could not move this player. Please try again.");
     } finally {
       setMoving(false);

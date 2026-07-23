@@ -84,6 +84,7 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
   const players       = (court.players as unknown as CourtMatchPlayer[]) ?? [];
   const teamA          = players.filter((p) => p.team === "team_a");
   const teamB          = players.filter((p) => p.team === "team_b");
+  const isTeamComplete = teamA.length === teamB.length && teamA.length + teamB.length === playersPerMatch;
 
   const borderClass = isFree
     ? "court-available"
@@ -242,12 +243,19 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
                 </div>
               </div>
 
+              {isPending && !isTeamComplete && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Needs {playersPerMatch} players, evenly split, before this can start — edit players to fix it.
+                </p>
+              )}
+
               {isPending && (
                 <Button
                   className="w-full"
                   size="sm"
                   variant="warning"
                   loading={loadingAction === "start"}
+                  disabled={!isTeamComplete}
                   onClick={handleStart}
                 >
                   <Play className="h-4 w-4" />
