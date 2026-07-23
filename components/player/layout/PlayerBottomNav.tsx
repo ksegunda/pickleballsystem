@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart2, Trophy } from "lucide-react";
+import { Activity, BarChart2, MapPin, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ROUTES } from "@/lib/constants/routes";
 
@@ -15,6 +15,7 @@ export function PlayerBottomNav({ sessionId }: PlayerBottomNavProps) {
 
   const items = [
     { label: "Play",        href: ROUTES.PLAY(sessionId),            icon: Activity },
+    { label: "Courts",      href: ROUTES.PLAY_COURTS(sessionId),     icon: MapPin },
     { label: "Stats",       href: ROUTES.PLAY_STATS(sessionId),      icon: BarChart2 },
     { label: "Leaderboard", href: ROUTES.PLAY_LEADERBOARD(sessionId),icon: Trophy },
   ];

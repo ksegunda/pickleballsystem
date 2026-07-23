@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Lock, Users, X } from "lucide-react";
-import { createLockedSetAction, deleteLockedSetAction } from "@/actions/match.actions";
+import { Lock, Shuffle, Users, X } from "lucide-react";
+import { createLockedSetAction, deleteLockedSetAction, shuffleQueueAction } from "@/actions/match.actions";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { QueueEntryRow } from "@/components/host/queue/QueueEntryRow";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { LockTeamAssignModal } from "./LockTeamAssignModal";
@@ -30,6 +34,8 @@ export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [locking, setLocking]             = useState(false);
+  const [shuffleDialogOpen, setShuffleDialogOpen] = useState(false);
+  const [shuffling, setShuffling]                 = useState(false);
 
   // True individual rank — same priority_score DESC, entered_queue ASC
   // ordering the matchmaker itself uses — independent of how locked
@@ -130,23 +136,54 @@ export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }
 
   const selectedPlayers = queue.filter((q) => selectedIds.has(q.player_id));
 
+  async function handleShuffle() {
+    setShuffling(true);
+    try {
+      const result = await shuffleQueueAction(sessionId);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Queue shuffled.");
+      setShuffleDialogOpen(false);
+      onChanged();
+    } catch {
+      toast.error("Could not shuffle the queue. Please try again.");
+    } finally {
+      setShuffling(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Queue</h2>
-        <Button variant={selectionMode ? "outline" : "ghost"} size="sm" onClick={toggleSelectionMode}>
-          {selectionMode ? (
-            <>
-              <X className="h-3.5 w-3.5" />
-              Cancel
-            </>
-          ) : (
-            <>
-              <Lock className="h-3.5 w-3.5" />
-              Lock Players
-            </>
+        <div className="flex items-center gap-1">
+          {!selectionMode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShuffleDialogOpen(true)}
+              disabled={queue.length < 2}
+            >
+              <Shuffle className="h-3.5 w-3.5" />
+              Shuffle
+            </Button>
           )}
-        </Button>
+          <Button variant={selectionMode ? "outline" : "ghost"} size="sm" onClick={toggleSelectionMode}>
+            {selectionMode ? (
+              <>
+                <X className="h-3.5 w-3.5" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Lock className="h-3.5 w-3.5" />
+                Lock Players
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {selectionMode && (
@@ -213,6 +250,28 @@ export function QueueLockControls({ sessionId, queue, lockedPlayers, onChanged }
         players={selectedPlayers.map((p) => ({ player_id: p.player_id, display_name: p.display_name }))}
         onLocked={() => { setTeamModalOpen(false); exitSelection(); onChanged(); }}
       />
+
+      <Dialog open={shuffleDialogOpen} onOpenChange={setShuffleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Shuffle the queue?</DialogTitle>
+            <DialogDescription>
+              This randomly reorders everyone currently waiting, resetting their fair wait-time
+              order. Players locked as partners or a full match keep their relative order within
+              their group. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShuffleDialogOpen(false)} disabled={shuffling}>
+              Cancel
+            </Button>
+            <Button onClick={handleShuffle} loading={shuffling}>
+              <Shuffle className="h-4 w-4" />
+              Shuffle Queue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

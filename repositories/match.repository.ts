@@ -37,11 +37,11 @@ export class MatchRepository {
     if (error) throw error;
   }
 
-  async updateTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
-    const { data, error } = await this.db.rpc("update_match_teams", {
-      p_match_id: matchId,
-      p_team_a:   teamA,
-      p_team_b:   teamB,
+  async movePlayer(playerId: string, destMatchId: string | null, destTeam: TeamSide | null): Promise<boolean> {
+    const { data, error } = await this.db.rpc("move_player", {
+      p_player_id:     playerId,
+      p_dest_match_id: destMatchId,
+      p_dest_team:     destTeam,
     });
     if (error) throw error;
     return data ?? false;

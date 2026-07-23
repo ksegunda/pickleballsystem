@@ -34,11 +34,23 @@ export async function getMatchHistoryAction(sessionId: string) {
   }
 }
 
-export async function updateMatchTeamsAction(
-  sessionId: string,
-  matchId:   string,
-  teamA:     string[],
-  teamB:     string[]
+// Public/player-facing — same public_read_* RLS as the other player.actions
+// reads, no host auth required.
+export async function getAllCourtsAction(sessionId: string) {
+  try {
+    const supabase = await createClient();
+    const service  = new MatchmakingService(supabase);
+    return await service.getAllCourts(sessionId);
+  } catch {
+    return [];
+  }
+}
+
+export async function movePlayerAction(
+  sessionId:   string,
+  playerId:    string,
+  destMatchId: string | null,
+  destTeam:    TeamSide | null
 ): Promise<ActionResult<null>> {
   try {
     const supabase = await createClient();
@@ -46,16 +58,54 @@ export async function updateMatchTeamsAction(
     if (!user) return { success: false, error: "Unauthorized" };
 
     const service = new MatchmakingService(supabase);
-    const ok = await service.updateMatchTeams(matchId, teamA, teamB);
+    const ok = await service.movePlayer(playerId, destMatchId, destTeam);
 
     if (!ok) {
-      return { success: false, error: "This match already moved on — please refresh and try again." };
+      return { success: false, error: "Could not move this player — that spot may already be full, or things changed since you loaded this page." };
     }
 
     revalidatePath(ROUTES.COURTS(sessionId));
     return { success: true, data: null };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to update teams.";
+    const msg = err instanceof Error ? err.message : "Failed to move this player.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function shuffleQueueAction(
+  sessionId: string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    await service.shuffleQueue(sessionId);
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to shuffle the queue.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function incrementForecastTargetAction(
+  sessionId: string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    await service.incrementForecastTarget(sessionId);
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to add another set.";
     return { success: false, error: msg };
   }
 }

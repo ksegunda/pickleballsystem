@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Zap, Play, Trophy } from "lucide-react";
+import { Users, Zap, Play, Trophy, Pencil } from "lucide-react";
 import { generateMatchAction, startMatchAction, finishMatchAction } from "@/actions/match.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ interface CourtCardProps {
   // the card would otherwise wait on that push indefinitely with no
   // fallback, which is what made Bug 4's "Wrapping up…" spinner hang.
   onStalledRefresh:  () => void;
+  onEditPlayers:     () => void;
 }
 
 const STALL_TIMEOUT_MS = 7000;
@@ -36,7 +37,7 @@ interface CourtMatchPlayer {
 
 type LoadingAction = "generate" | "start" | "team_a" | "team_b" | null;
 
-export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch, onStalledRefresh }: CourtCardProps) {
+export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch, onStalledRefresh, onEditPlayers }: CourtCardProps) {
   const [loadingAction, setLoadingAction] = useState<LoadingAction>(null);
 
   // Bridges the gap between "the action resolved" and "the parent's realtime
@@ -151,17 +152,30 @@ export function CourtCard({ sessionId, court, hasEnoughPlayers, playersPerMatch,
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-foreground">{court.court_name}</h3>
-          {isFinishing ? (
-            <span className="text-xs font-medium text-muted-foreground">Finishing…</span>
-          ) : isFree ? (
-            <CourtStatusBadge status="available" />
-          ) : isInProgress ? (
-            <TimerDisplay startedAt={court.started_at ?? optimisticStartedAt} size="sm" />
-          ) : (
-            <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
-              Ready
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {!isFinishing && !isFree && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="Edit players"
+                onClick={onEditPlayers}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {isFinishing ? (
+              <span className="text-xs font-medium text-muted-foreground">Finishing…</span>
+            ) : isFree ? (
+              <CourtStatusBadge status="available" />
+            ) : isInProgress ? (
+              <TimerDisplay startedAt={court.started_at ?? optimisticStartedAt} size="sm" />
+            ) : (
+              <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
+                Ready
+              </span>
+            )}
+          </div>
         </div>
 
         <AnimatePresence mode="wait">

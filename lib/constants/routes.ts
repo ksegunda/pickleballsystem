@@ -23,6 +23,7 @@ export const ROUTES = {
   JOIN_TOKEN:  (token: string) => `/join/t/${token}`,
   THANK_YOU:   "/thank-you",
   PLAY:        (sessionId: string) => `/play/${sessionId}`,
+  PLAY_COURTS: (sessionId: string) => `/play/${sessionId}/courts`,
   PLAY_HISTORY:(sessionId: string) => `/play/${sessionId}/history`,
   PLAY_STATS:  (sessionId: string) => `/play/${sessionId}/stats`,
   PLAY_LEADERBOARD: (sessionId: string) => `/play/${sessionId}/leaderboard`,

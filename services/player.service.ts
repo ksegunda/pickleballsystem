@@ -100,6 +100,46 @@ export class PlayerService {
     return { player, isReturning: false };
   }
 
+  // Host-side add for players without a phone to scan a QR / type a join
+  // code — device_token stays NULL (already nullable at the schema level,
+  // and NULLs never collide under the device-token unique index), so this
+  // player just never has a "their own device" concept, same as any other
+  // roster entry from the host's point of view.
+  async addPlayerManually(sessionId: string, displayName: string) {
+    const session = await this.sessionRepo.findById(sessionId);
+    if (!["active", "pending"].includes(session.status)) {
+      throw new Error("This session is not accepting new players.");
+    }
+
+    if (session.max_players) {
+      const existing = await this.playerRepo.findBySession(sessionId);
+      if (existing.length >= session.max_players) {
+        throw new Error("This session has reached its maximum player limit.");
+      }
+    }
+
+    let player;
+    try {
+      player = await this.playerRepo.create({
+        session_id:   sessionId,
+        display_name: displayName,
+        device_token: null,
+        status:       "waiting",
+      });
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === "23505") {
+        throw new Error("That name is already taken in this session — try a different one.");
+      }
+      throw err;
+    }
+
+    await this.queueRepo.addToQueue(sessionId, player.id);
+    await this.queueRepo.recalculatePositions(sessionId);
+
+    return player;
+  }
+
   async leaveSession(playerId: string, deviceToken?: string) {
     return this.playerRepo.leave(playerId, deviceToken);
   }

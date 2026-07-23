@@ -1,11 +1,46 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient }  from "@/lib/supabase/server";
 import { joinSessionSchema } from "@/lib/validations/player.schema";
 import { PlayerService } from "@/services/player.service";
+import { SessionService } from "@/services/session.service";
+import { ROUTES } from "@/lib/constants/routes";
 import type { JoinSessionSchema } from "@/lib/validations/player.schema";
 import type { ActionResult } from "./auth.actions";
 import type { Player } from "@/types/player.types";
+
+// Host-side add for players without a phone — unlike the self-service join
+// actions below, this needs real host authorization: the `players` INSERT
+// RLS policy is deliberately permissive (any active/pending session, no
+// ownership check — that's what makes anonymous self-join work at all), so
+// it alone can't be trusted to stop one host from adding players into a
+// DIFFERENT host's session. Ownership is checked explicitly here instead.
+export async function addPlayerManuallyAction(
+  sessionId:   string,
+  displayName: string
+): Promise<ActionResult<{ player: Player }>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const sessionService = new SessionService(supabase);
+    const session = await sessionService.getSession(sessionId);
+    if (session.host_id !== user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const service = new PlayerService(supabase);
+    const player  = await service.addPlayerManually(sessionId, displayName.trim());
+
+    revalidatePath(ROUTES.PLAYERS(sessionId));
+    return { success: true, data: { player } };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to add player.";
+    return { success: false, error: msg };
+  }
+}
 
 export async function joinSessionAction(
   formData: JoinSessionSchema

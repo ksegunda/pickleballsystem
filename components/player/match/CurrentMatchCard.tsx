@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Swords } from "lucide-react";
+import { MapPin, PartyPopper, Swords } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
@@ -55,6 +55,25 @@ export function CurrentMatchCard({ match }: CurrentMatchCardProps) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="space-y-4"
     >
+      {isForecasted && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-card"
+        >
+          <motion.div
+            animate={{ rotate: [0, -10, 10, -10, 0] }}
+            transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 1.5 }}
+          >
+            <PartyPopper className="h-5 w-5 shrink-0" />
+          </motion.div>
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold uppercase tracking-wide">You&apos;re next up!</p>
+            <p className="text-xs opacity-90">Stay nearby — waiting for a court to open up.</p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Court header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -74,12 +93,6 @@ export function CurrentMatchCard({ match }: CurrentMatchCardProps) {
           </span>
         )}
       </div>
-
-      {isForecasted && (
-        <p className="text-sm text-muted-foreground">
-          You&apos;ve been matched! Waiting for a court to open up.
-        </p>
-      )}
 
       {/* Team A — you */}
       <Card className={cn("border-2 border-primary/30 bg-primary/5")}>

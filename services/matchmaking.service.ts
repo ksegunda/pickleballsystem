@@ -23,25 +23,21 @@ export class MatchmakingService {
     this.lockRepo    = new LockRepository(db);
   }
 
-  private async getPlayersPerMatch(sessionId: string): Promise<number> {
-    const settings = await this.sessionRepo.getSettings(sessionId);
-    return settings.match_format === "singles" ? 2 : PLAYERS_PER_MATCH;
-  }
-
   async getCourtsBoard(sessionId: string) {
     // Claim any free court with the oldest ready forecast set, then top the pool
     // back up — same "recompute on read" idiom as recalculate_priority_scores,
     // so this self-heals on every page load and every realtime-triggered refresh.
     await this.matchRepo.assignForecastToFreeCourts(sessionId);
 
-    const [courts, queue, playersPerMatch, forecastRows, lockedPlayers] = await Promise.all([
+    const [courts, queue, settings, forecastRows, lockedPlayers] = await Promise.all([
       this.courtRepo.getCourtsWithStatus(sessionId),
       this.queueRepo.getQueueWithStats(sessionId),
-      this.getPlayersPerMatch(sessionId),
+      this.sessionRepo.getSettings(sessionId),
       this.matchRepo.getForecastPool(sessionId),
       this.lockRepo.getLockedPlayers(sessionId),
     ]);
 
+    const playersPerMatch = settings.match_format === "singles" ? 2 : PLAYERS_PER_MATCH;
     const waitingCount = queue.length;
 
     const eligibility: MatchEligibility = {
@@ -53,26 +49,43 @@ export class MatchmakingService {
     // forecast_pool_view is already ordered by created_at ASC — auto and
     // manual rows are interleaved here in real creation order, not split
     // apart, so a manual match takes whichever position its age earns it
-    // instead of always being pinned to the end (see Bug 5).
-    const forecastPool = this.buildForecastPool(courts.length, forecastRows, waitingCount, playersPerMatch);
+    // instead of always being pinned to the end (see Bug 5). The auto-slot
+    // count is now the host-controlled target_forecast_count (default 1,
+    // grown one at a time via the "+" next to "Next Up") instead of one
+    // per court.
+    const forecastPool = this.buildForecastPool(settings.target_forecast_count, forecastRows, waitingCount, playersPerMatch);
 
     return { courts, eligibility, forecastPool, queue, lockedPlayers };
+  }
+
+  async incrementForecastTarget(sessionId: string): Promise<void> {
+    return this.sessionRepo.incrementForecastTarget(sessionId);
   }
 
   async getMatchHistory(sessionId: string) {
     return this.matchRepo.getMatchHistory(sessionId);
   }
 
+  // Read-only, no eligibility/forecast/queue payload — used by the
+  // player-side "All Courts" view, which only needs live court assignments.
+  async getAllCourts(sessionId: string) {
+    return this.courtRepo.getCourtsWithStatus(sessionId);
+  }
+
   async createLockedSet(sessionId: string, lockType: LockType, players: string[], teams?: TeamSide[]): Promise<string | null> {
     return this.lockRepo.create(sessionId, lockType, players, teams);
+  }
+
+  async shuffleQueue(sessionId: string): Promise<void> {
+    return this.queueRepo.shuffle(sessionId);
   }
 
   async deleteLockedSet(lockedSetId: string): Promise<boolean> {
     return this.lockRepo.delete(lockedSetId);
   }
 
-  async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
-    return this.matchRepo.updateTeams(matchId, teamA, teamB);
+  async movePlayer(playerId: string, destMatchId: string | null, destTeam: TeamSide | null): Promise<boolean> {
+    return this.matchRepo.movePlayer(playerId, destMatchId, destTeam);
   }
 
   async createManualMatch(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {
@@ -83,9 +96,9 @@ export class MatchmakingService {
    * Real (filled) slots first, in creation-time order — auto and manual
    * mixed together, whichever was formed earliest renders first, so a
    * manual match reshuffles alongside auto sets instead of always sitting
-   * last. Manual doesn't count against the per-court capacity below (it's
-   * an additional slot, not one of the courts.length auto ones) — only
-   * auto rows factor into how many trailing empty placeholders are needed.
+   * last. Manual doesn't count against the target capacity below (it's
+   * an additional slot, not one of the target_forecast_count auto ones) —
+   * only auto rows factor into how many trailing empty placeholders are needed.
    * Auto cards get sequential "Set N" labels based on their position among
    * just the numbered slots; a manual card's label ("Manual") comes from
    * its isManual flag on the frontend, never from setNumber.

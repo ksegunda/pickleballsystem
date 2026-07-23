@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { ArrowRight, Plus, Users } from "lucide-react";
+import { incrementForecastTargetAction } from "@/actions/match.actions";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { TeamEditModal } from "./TeamEditModal";
 import { ManualMatchPicker } from "./ManualMatchPicker";
 import type { ForecastSet } from "@/types/match.types";
 import type { Database } from "@/types/database.types";
@@ -16,15 +18,32 @@ interface ForecastPoolSectionProps {
   queue:           QueueRow[];
   playersPerMatch: number;
   onChanged:       () => void;
+  onEditPlayers:   () => void;
 }
 
 export function ForecastPoolSection({
-  sessionId, sets, queue, playersPerMatch, onChanged,
+  sessionId, sets, queue, playersPerMatch, onChanged, onEditPlayers,
 }: ForecastPoolSectionProps) {
-  const [editingSet, setEditingSet] = useState<ForecastSet | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [addingSet, setAddingSet]   = useState(false);
 
   const readyCount = sets.filter((s) => s.matchId !== null).length;
+
+  async function handleAddSet() {
+    setAddingSet(true);
+    try {
+      const result = await incrementForecastTargetAction(sessionId);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      onChanged();
+    } catch {
+      toast.error("Could not add another set. Please try again.");
+    } finally {
+      setAddingSet(false);
+    }
+  }
 
   // Only ever called for a ready (matchId !== null) set — renderEmptyCard
   // handles the placeholder case separately.
@@ -37,11 +56,7 @@ export function ForecastPoolSection({
       <Card
         key={set.matchId}
         className="cursor-pointer transition-colors hover:border-primary/50"
-        onClick={() => {
-          // TEMP DIAGNOSTIC for Bug 3 (no modal on click) — remove once confirmed.
-          console.error("[ForecastPoolSection] card clicked", { label, matchId: set.matchId, playerCount: set.players.length });
-          setEditingSet(set);
-        }}
+        onClick={onEditPlayers}
       >
         <CardContent className="p-4 space-y-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -121,6 +136,16 @@ export function ForecastPoolSection({
         <span className="text-xs text-muted-foreground">
           {readyCount} of {sets.length} set{sets.length === 1 ? "" : "s"} ready
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-7 w-7"
+          title="Add another set"
+          loading={addingSet}
+          onClick={handleAddSet}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
       <p className="text-xs text-muted-foreground">
         Not tied to a specific court — whichever court frees up first claims the oldest set.
@@ -130,15 +155,6 @@ export function ForecastPoolSection({
         {sets.map((set) => (set.matchId !== null ? renderCard(set) : renderEmptyCard(set)))}
         {renderAddManualCard()}
       </div>
-
-      {editingSet && (
-        <TeamEditModal
-          sessionId={sessionId}
-          set={editingSet}
-          onClose={() => setEditingSet(null)}
-          onSaved={() => { setEditingSet(null); onChanged(); }}
-        />
-      )}
 
       <ManualMatchPicker
         open={pickerOpen}

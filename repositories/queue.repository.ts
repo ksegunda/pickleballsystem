@@ -67,4 +67,9 @@ export class QueueRepository {
     if (error) throw error;
     return data?.position ?? null;
   }
+
+  async shuffle(sessionId: string): Promise<void> {
+    const { error } = await this.db.rpc("shuffle_queue", { p_session_id: sessionId });
+    if (error) throw error;
+  }
 }

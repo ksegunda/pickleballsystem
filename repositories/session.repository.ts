@@ -94,6 +94,11 @@ export class SessionRepository {
     return data;
   }
 
+  async incrementForecastTarget(sessionId: string): Promise<void> {
+    const { error } = await this.db.rpc("increment_forecast_target", { p_session_id: sessionId });
+    if (error) throw error;
+  }
+
   async createCourts(sessionId: string, count: number) {
     const { error } = await this.db
       .rpc("create_session_courts", {

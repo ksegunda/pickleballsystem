@@ -7,6 +7,7 @@ import { useConnectionStatus } from "@/lib/hooks/useConnectionStatus";
 import { CourtCard } from "./CourtCard";
 import { ForecastPoolSection } from "./ForecastPoolSection";
 import { QueueLockControls } from "./QueueLockControls";
+import { RosterEditorDrawer } from "./RosterEditorDrawer";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import type { CourtView, MatchEligibility, ForecastSet, LockedPlayerRow } from "@/types/match.types";
 import type { Database } from "@/types/database.types";
@@ -30,6 +31,7 @@ export function CourtsBoard({
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
   const [queue, setQueue]             = useState(initialQueue);
   const [lockedPlayers, setLockedPlayers] = useState(initialLockedPlayers);
+  const [editorOpen, setEditorOpen]   = useState(false);
 
   const refresh = useCallback(async () => {
     const board = await getCourtsBoardAction(sessionId);
@@ -99,6 +101,7 @@ export function CourtsBoard({
             hasEnoughPlayers={eligibility.hasEnoughPlayers}
             playersPerMatch={eligibility.playersPerMatch}
             onStalledRefresh={refresh}
+            onEditPlayers={() => setEditorOpen(true)}
           />
         ))}
       </div>
@@ -108,12 +111,24 @@ export function CourtsBoard({
         queue={queue}
         playersPerMatch={eligibility.playersPerMatch}
         onChanged={refresh}
+        onEditPlayers={() => setEditorOpen(true)}
       />
 
       <QueueLockControls
         sessionId={sessionId}
         queue={queue}
         lockedPlayers={lockedPlayers}
+        onChanged={refresh}
+      />
+
+      <RosterEditorDrawer
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        sessionId={sessionId}
+        courts={courts}
+        forecastPool={forecastPool}
+        queue={queue}
+        playersPerMatch={eligibility.playersPerMatch}
         onChanged={refresh}
       />
     </div>

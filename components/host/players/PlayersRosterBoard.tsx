@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, Users, UserX } from "lucide-react";
+import { Search, Users, UserX, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { getLeaderboardAction, removePlayerAction } from "@/actions/player.actions";
+import { getLeaderboardAction, removePlayerAction, addPlayerManuallyAction } from "@/actions/player.actions";
 import { PlayerStatusBadge } from "@/components/shared/StatusBadge";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -39,11 +39,37 @@ export function PlayersRosterBoard({ sessionId, initialPlayers }: PlayersRosterB
   const [statusFilter, setStatusFilter] = useState<PlayerStatus | "all">("all");
   const [removeTarget, setRemoveTarget] = useState<LeaderboardRow | null>(null);
   const [removing, setRemoving]         = useState(false);
+  const [newName, setNewName]           = useState("");
+  const [adding, setAdding]             = useState(false);
 
   const refresh = useCallback(async () => {
     const data = await getLeaderboardAction(sessionId);
     setPlayers(data);
   }, [sessionId]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newName.trim();
+    if (trimmed.length < 2) {
+      toast.error("Name must be at least 2 characters.");
+      return;
+    }
+    setAdding(true);
+    try {
+      const result = await addPlayerManuallyAction(sessionId, trimmed);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${trimmed} added to the queue.`);
+      setNewName("");
+      await refresh();
+    } catch {
+      toast.error("Could not add this player. Please try again.");
+    } finally {
+      setAdding(false);
+    }
+  }
 
   async function handleRemove() {
     if (!removeTarget) return;
@@ -93,6 +119,20 @@ export function PlayersRosterBoard({ sessionId, initialPlayers }: PlayersRosterB
         <p className="text-sm text-muted-foreground">{players.length} joined</p>
         <LiveIndicator />
       </div>
+
+      <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          placeholder="Player name (no phone needed)"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          maxLength={30}
+          className="sm:flex-1"
+        />
+        <Button type="submit" loading={adding} disabled={newName.trim().length < 2}>
+          <UserPlus className="h-4 w-4" />
+          Add Player
+        </Button>
+      </form>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">

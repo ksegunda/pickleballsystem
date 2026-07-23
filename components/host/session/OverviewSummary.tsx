@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCourtsBoardAction } from "@/actions/match.actions";
@@ -41,6 +42,7 @@ export function OverviewSummary({
   sessionId, initialCourts, initialForecastPool, initialQueue,
   initialLeaderboard, playersPerMatch,
 }: OverviewSummaryProps) {
+  const router = useRouter();
   const [courts, setCourts]             = useState(initialCourts);
   const [forecastPool, setForecastPool] = useState(initialForecastPool);
   const [queue, setQueue]               = useState(initialQueue);
@@ -114,6 +116,7 @@ export function OverviewSummary({
         queue={queue}
         playersPerMatch={playersPerMatch}
         onChanged={refresh}
+        onEditPlayers={() => router.push(ROUTES.COURTS(sessionId))}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

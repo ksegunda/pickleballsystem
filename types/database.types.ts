@@ -135,6 +135,7 @@ export interface Database {
           weight_performance:    number;
           anti_repeat_threshold: number;
           player_level:          PlayerLevel;
+          target_forecast_count: number;
           updated_at:            string;
         };
         Insert: {
@@ -151,6 +152,7 @@ export interface Database {
           weight_performance?:    number;
           anti_repeat_threshold?: number;
           player_level?:          PlayerLevel;
+          target_forecast_count?: number;
           updated_at?:            string;
         };
         Update: Partial<Database["public"]["Tables"]["session_settings"]["Insert"]>;
@@ -572,8 +574,8 @@ export interface Database {
         Args: { p_player_id: string; p_resting: boolean; p_device_token?: string | null };
         Returns: boolean;
       };
-      update_match_teams: {
-        Args: { p_match_id: string; p_team_a: string[]; p_team_b: string[] };
+      move_player: {
+        Args: { p_player_id: string; p_dest_match_id: string | null; p_dest_team: TeamSide | null };
         Returns: boolean;
       };
       create_manual_match: {
@@ -587,6 +589,14 @@ export interface Database {
       delete_locked_set: {
         Args: { p_locked_set_id: string };
         Returns: boolean;
+      };
+      shuffle_queue: {
+        Args: { p_session_id: string };
+        Returns: void;
+      };
+      increment_forecast_target: {
+        Args: { p_session_id: string };
+        Returns: void;
       };
     };
     Enums: {
