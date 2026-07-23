@@ -42,7 +42,8 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     try {
       const result = await registerAction(data);
       if (!result.success) {
-        toast.error(result.error);
+        console.error("[RegisterForm] registerAction failed:", result.error);
+        toast.error(typeof result.error === "string" && result.error ? result.error : "Something went wrong. Please try again.");
         return;
       }
       if (result.data.needsVerification) {
@@ -52,7 +53,8 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         // session, nothing to verify.
         router.push("/sessions");
       }
-    } catch {
+    } catch (err) {
+      console.error("[RegisterForm] unexpected error:", err);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

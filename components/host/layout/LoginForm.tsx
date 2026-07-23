@@ -46,11 +46,13 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           setPendingEmail(data.email);
           return;
         }
-        toast.error(result.error);
+        console.error("[LoginForm] loginAction failed:", result.error);
+        toast.error(typeof result.error === "string" && result.error ? result.error : "Something went wrong. Please try again.");
         return;
       }
       router.push("/sessions");
-    } catch {
+    } catch (err) {
+      console.error("[LoginForm] unexpected error:", err);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

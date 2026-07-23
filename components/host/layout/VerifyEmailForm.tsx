@@ -40,12 +40,14 @@ export function VerifyEmailForm({ email, onVerified, onBack }: VerifyEmailFormPr
     try {
       const result = await verifyEmailOtpAction(email, value);
       if (!result.success) {
-        setError(result.error);
+        console.error("[VerifyEmailForm] verifyEmailOtpAction failed:", result.error);
+        setError(typeof result.error === "string" && result.error ? result.error : "Something went wrong. Please try again.");
         setCode("");
         return;
       }
       onVerified();
-    } catch {
+    } catch (err) {
+      console.error("[VerifyEmailForm] unexpected verify error:", err);
       setError("Something went wrong. Please try again.");
       setCode("");
     } finally {
@@ -65,14 +67,16 @@ export function VerifyEmailForm({ email, onVerified, onBack }: VerifyEmailFormPr
     try {
       const result = await resendEmailOtpAction(email);
       if (!result.success) {
-        toast.error(result.error);
+        console.error("[VerifyEmailForm] resendEmailOtpAction failed:", result.error);
+        toast.error(typeof result.error === "string" && result.error ? result.error : "Could not resend the code. Please try again.");
         return;
       }
       toast.success("Code resent — check your inbox.");
       setCooldown(RESEND_COOLDOWN_SECS);
       setCode("");
       setError(null);
-    } catch {
+    } catch (err) {
+      console.error("[VerifyEmailForm] unexpected resend error:", err);
       toast.error("Could not resend the code. Please try again.");
     } finally {
       setResending(false);
