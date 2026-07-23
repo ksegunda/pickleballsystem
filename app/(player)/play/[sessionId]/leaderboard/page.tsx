@@ -14,7 +14,10 @@ export default async function PlayerLeaderboardPage({ params }: PageProps) {
   const supabase = await createClient();
   const service  = new SessionService(supabase);
 
-  const session = await service.getSession(sessionId).catch(() => null);
+  const [session, summary] = await Promise.all([
+    service.getSession(sessionId).catch(() => null),
+    service.getSessionSummary(sessionId).catch(() => undefined),
+  ]);
   if (!session) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
@@ -26,5 +29,5 @@ export default async function PlayerLeaderboardPage({ params }: PageProps) {
     );
   }
 
-  return <PlayerLeaderboardView session={session} />;
+  return <PlayerLeaderboardView session={{ ...session, summary }} />;
 }

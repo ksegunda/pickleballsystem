@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { MapPin, Users } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { MapPin, Users, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { getAllCourtsAction, getPublicQueueAction } from "@/actions/match.actions";
+import { getAllCourtsAction, getPublicQueueAction, getPublicForecastPoolAction } from "@/actions/match.actions";
 import { getStoredPlayerIdentity } from "@/lib/utils/player-identity";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { LastSyncedIndicator } from "@/components/shared/LastSyncedIndicator";
@@ -15,7 +15,7 @@ import { PickleballCourtGraphic } from "@/components/player/match/PickleballCour
 import { formatWaitTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { Session } from "@/types/session.types";
-import type { CourtView } from "@/types/match.types";
+import type { CourtView, ForecastSet } from "@/types/match.types";
 import type { Database, TeamSide } from "@/types/database.types";
 
 type QueueRow = Database["public"]["Views"]["queue_with_stats"]["Row"];
@@ -30,10 +30,22 @@ interface CourtMatchPlayer {
   team:         TeamSide;
 }
 
-// Every court graphic in this grid renders at the same compact size
-// regardless of how many courts the session has — a lone court just sits
-// centered at grid-cell width instead of stretching bigger, so the layout
-// never has to "jump" in scale as courts come and go.
+// Shared by the Courts grid and the Next Up grid — a lone card sits
+// centered at the same width a grid cell would give it (instead of
+// stretching bigger), so the layout doesn't visibly "jump" in scale as
+// courts/sets come and go.
+function CardGrid({ items }: { items: ReactNode[] }) {
+  if (items.length === 0) return null;
+  if (items.length === 1) {
+    return (
+      <div className="flex justify-center">
+        <div className="w-[calc(50%-0.25rem)] min-w-[140px]">{items[0]}</div>
+      </div>
+    );
+  }
+  return <div className="grid grid-cols-2 gap-2.5">{items}</div>;
+}
+
 function CourtCell({ court, myPlayerId }: { court: CourtView; myPlayerId: string | null }) {
   const isMaintenance = court.court_status === "maintenance";
   const isFree         = !isMaintenance && court.match_id === null;
@@ -79,6 +91,32 @@ function CourtCell({ court, myPlayerId }: { court: CourtView; myPlayerId: string
   );
 }
 
+function ForecastCell({ set, myPlayerId }: { set: ForecastSet; myPlayerId: string | null }) {
+  const teamA = set.players.filter((p) => p.team === "team_a");
+  const teamB = set.players.filter((p) => p.team === "team_b");
+  const label = set.isManual ? "Manual" : `Set ${set.setNumber}`;
+
+  return (
+    <PickleballCourtGraphic
+      compact
+      reserved
+      topTeam={teamA}
+      bottomTeam={teamB}
+      meId={myPlayerId ?? ""}
+      header={
+        <>
+          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold text-foreground shadow">
+            {label}
+          </span>
+          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold uppercase text-foreground shadow">
+            Next Up
+          </span>
+        </>
+      }
+    />
+  );
+}
+
 function QueueRowItem({ entry, position, isMe }: { entry: QueueRow; position: number; isMe: boolean }) {
   return (
     <div className={cn("flex items-center gap-3 px-3.5 py-2.5", isMe && "bg-primary/5")}>
@@ -100,9 +138,10 @@ function QueueRowItem({ entry, position, isMe }: { entry: QueueRow; position: nu
 }
 
 export function AllCourtsView({ session }: AllCourtsViewProps) {
-  const [courts, setCourts]   = useState<CourtView[]>([]);
-  const [queue, setQueue]     = useState<QueueRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [courts, setCourts]     = useState<CourtView[]>([]);
+  const [forecastPool, setForecastPool] = useState<ForecastSet[]>([]);
+  const [queue, setQueue]       = useState<QueueRow[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const syncSecs = useElapsedSeconds(lastSyncedAt?.toISOString(), lastSyncedAt !== null);
@@ -112,11 +151,13 @@ export function AllCourtsView({ session }: AllCourtsViewProps) {
   }, [session.id]);
 
   const load = useCallback(async () => {
-    const [courtsData, queueData] = await Promise.all([
+    const [courtsData, forecastData, queueData] = await Promise.all([
       getAllCourtsAction(session.id),
+      getPublicForecastPoolAction(session.id),
       getPublicQueueAction(session.id),
     ]);
     setCourts(courtsData);
+    setForecastPool(forecastData);
     setQueue(queueData);
     setLoading(false);
     setLastSyncedAt(new Date());
@@ -171,20 +212,21 @@ export function AllCourtsView({ session }: AllCourtsViewProps) {
 
         {courts.length === 0 ? (
           <EmptyState icon={MapPin} title="No courts yet" description="The host hasn't set up any courts." />
-        ) : courts.length === 1 ? (
-          <div className="flex justify-center">
-            <div className="w-[calc(50%-0.25rem)] min-w-[140px]">
-              <CourtCell court={courts[0]} myPlayerId={myPlayerId} />
-            </div>
-          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
-            {courts.map((court) => (
-              <CourtCell key={court.court_id} court={court} myPlayerId={myPlayerId} />
-            ))}
-          </div>
+          <CardGrid items={courts.map((court) => <CourtCell key={court.court_id} court={court} myPlayerId={myPlayerId} />)} />
         )}
       </div>
+
+      {forecastPool.length > 0 && (
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-1.5">
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Next Up</h2>
+            <span className="text-xs text-muted-foreground">{forecastPool.length} set{forecastPool.length === 1 ? "" : "s"}</span>
+          </div>
+          <CardGrid items={forecastPool.map((set) => <ForecastCell key={set.matchId} set={set} myPlayerId={myPlayerId} />)} />
+        </div>
+      )}
 
       <div className="space-y-2.5">
         <div className="flex items-center gap-1.5">

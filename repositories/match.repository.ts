@@ -47,6 +47,12 @@ export class MatchRepository {
     return data ?? false;
   }
 
+  async removeForecastSet(matchId: string): Promise<boolean> {
+    const { data, error } = await this.db.rpc("remove_forecast_set", { p_match_id: matchId });
+    if (error) throw error;
+    return data ?? false;
+  }
+
   async createManual(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {
     const { data, error } = await this.db.rpc("create_manual_match", {
       p_session_id: sessionId,

@@ -598,6 +598,10 @@ export interface Database {
         Args: { p_session_id: string };
         Returns: void;
       };
+      remove_forecast_set: {
+        Args: { p_match_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       session_status: SessionStatus;

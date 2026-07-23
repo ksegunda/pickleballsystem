@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Trophy, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import html2canvas from "html2canvas";
 import { createClient } from "@/lib/supabase/client";
 import { getLeaderboardAction } from "@/actions/player.actions";
 import { getStoredPlayerIdentity } from "@/lib/utils/player-identity";
+import { formatDateFull } from "@/lib/utils/format";
 import { LiveIndicator } from "@/components/shared/LiveIndicator";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LeaderboardShareCard, type ShareCardPlayer } from "./LeaderboardShareCard";
 import { cn } from "@/lib/utils/cn";
-import type { Session } from "@/types/session.types";
+import type { SessionWithSummary } from "@/types/session.types";
 import type { Database } from "@/types/database.types";
 
 type LeaderboardRow = Database["public"]["Views"]["leaderboard_view"]["Row"];
@@ -18,12 +23,18 @@ type LeaderboardRow = Database["public"]["Views"]["leaderboard_view"]["Row"];
 const TOP_N = 10;
 
 interface PlayerLeaderboardViewProps {
-  session: Session;
+  session: SessionWithSummary;
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
 export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
   const [rows, setRows]         = useState<LeaderboardRow[] | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [sharing, setSharing]   = useState(false);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     const data = await getLeaderboardAction(session.id);
@@ -48,6 +59,36 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [session.id, load]);
+
+  async function handleShare() {
+    if (!shareCardRef.current) return;
+    setSharing(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, { backgroundColor: null });
+      const blob = await canvasToBlob(canvas);
+      if (!blob) {
+        toast.error("Could not generate the image. Please try again.");
+        return;
+      }
+      const file = new File([blob], "paddlesync-leaderboard.png", { type: "image/png" });
+
+      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: session.session_name });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "paddlesync-leaderboard.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return; // user closed the native share sheet
+      toast.error("Could not generate the share image. Please try again.");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   if (rows === null) {
     return (
@@ -74,11 +115,44 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
   const me  = playerId ? rows.find((r) => r.player_id === playerId) ?? null : null;
   const meInTop = me ? top.some((r) => r.player_id === me.player_id) : false;
 
+  const totalPlayers = session.summary?.total_players ?? rows.length;
+  const shareTop: ShareCardPlayer[] = rows.slice(0, 3).map((r) => ({ rank: r.rank, name: r.display_name, wins: r.wins }));
+  const shareYou = me && !shareTop.some((p) => p.rank === me.rank) ? { rank: me.rank, name: me.display_name } : null;
+
   return (
-    <div className="px-5 pt-6 pb-2 space-y-4 max-w-md mx-auto">
+    <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
+      <div className="flex items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.png" alt="" className="h-6 w-6 rounded-md" />
+        <span className="text-sm font-extrabold tracking-tight text-foreground">PaddleSync</span>
+        <div className="ml-auto"><LiveIndicator /></div>
+      </div>
+
+      <div className="text-center">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-primary">{session.club_name}</p>
+        <p className="mt-1 text-lg font-extrabold text-foreground">{session.session_name}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{formatDateFull(session.session_date)}</p>
+
+        <div className="mt-3.5 flex items-center justify-center">
+          {[
+            { label: "Players", value: totalPlayers },
+            { label: "Games",   value: session.summary?.matches_completed ?? "—" },
+            { label: "Courts",  value: session.summary?.number_of_courts ?? "—" },
+          ].map((s, i) => (
+            <div key={s.label} className={cn("px-4", i > 0 && "border-l border-border")}>
+              <p className="text-base font-extrabold tabular-nums text-foreground">{s.value}</p>
+              <p className="text-[9.5px] font-semibold uppercase tracking-wide text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">Leaderboard</h1>
-        <LiveIndicator />
+        <h2 className="text-sm font-extrabold text-foreground">Session Rankings</h2>
+        <Button variant="ghost" size="sm" className="text-primary" loading={sharing} onClick={handleShare}>
+          <Share2 className="h-3.5 w-3.5" />
+          Share
+        </Button>
       </div>
 
       <div className="space-y-2">
@@ -93,6 +167,19 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
           <LeaderboardRowCard row={me} isMe />
         </>
       )}
+
+      {/* Off-screen — captured by html2canvas on Share, never visible on the page itself. */}
+      <div style={{ position: "fixed", top: 0, left: -99999, pointerEvents: "none" }} aria-hidden>
+        <LeaderboardShareCard
+          ref={shareCardRef}
+          clubName={session.club_name}
+          sessionName={session.session_name}
+          dateLabel={formatDateFull(session.session_date)}
+          totalPlayers={totalPlayers}
+          top={shareTop}
+          you={shareYou}
+        />
+      </div>
     </div>
   );
 }

@@ -58,6 +58,18 @@ export async function getPublicQueueAction(sessionId: string) {
   }
 }
 
+// Public/player-facing — the Courts tab's "Next Up" section, visible to
+// every player, not just whoever's actually in the upcoming set.
+export async function getPublicForecastPoolAction(sessionId: string) {
+  try {
+    const supabase = await createClient();
+    const service  = new MatchmakingService(supabase);
+    return await service.getPublicForecastPool(sessionId);
+  } catch {
+    return [];
+  }
+}
+
 export async function updateMatchTeamsAction(
   sessionId: string,
   matchId:   string,
@@ -99,6 +111,30 @@ export async function shuffleQueueAction(
     return { success: true, data: null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to shuffle the queue.";
+    return { success: false, error: msg };
+  }
+}
+
+export async function removeForecastSetAction(
+  sessionId: string,
+  matchId:   string
+): Promise<ActionResult<null>> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const service = new MatchmakingService(supabase);
+    const ok = await service.removeForecastSet(matchId);
+
+    if (!ok) {
+      return { success: false, error: "Could not remove this set — it may already be gone, promoted to a court, or it's the last set left." };
+    }
+
+    revalidatePath(ROUTES.COURTS(sessionId));
+    return { success: true, data: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to remove this set.";
     return { success: false, error: msg };
   }
 }

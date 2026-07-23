@@ -59,6 +59,10 @@ export function formatDate(dateStr: string): string {
   return format(parseISO(dateStr), "EEE, MMM d, yyyy");
 }
 
+export function formatDateFull(dateStr: string): string {
+  return format(parseISO(dateStr), "EEEE, MMMM d, yyyy");
+}
+
 export function formatDateShort(dateStr: string): string {
   return format(parseISO(dateStr), "MMM d");
 }

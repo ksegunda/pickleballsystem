@@ -50,24 +50,28 @@ function DraggableChip({ id, name }: { id: string; name: string }) {
 }
 
 function TeamZone({
-  id, label, players, full,
+  id, label, players,
 }: {
   id: TeamSide;
   label: string;
   players: RosterPlayer[];
-  full: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id, disabled: full });
+  // Always droppable — both teams are permanently at capacity in this
+  // fixed-4-player editor (nothing here ever adds/removes a player), so
+  // "full" can't mean "reject the drop" the way it used to when a team
+  // could sit under capacity waiting for a queue backfill. Dropping onto
+  // a full team is a swap (see handleDragEnd), not a capacity violation.
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
     <div
       ref={setNodeRef}
       className={`min-h-[120px] space-y-2 rounded-2xl border-2 border-dashed p-3 transition-colors ${
-        isOver ? "border-primary bg-primary/5" : full ? "border-border/50 bg-muted/30" : "border-border"
+        isOver ? "border-primary bg-primary/5" : "border-border"
       }`}
     >
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label} · {players.length}{full ? " · full" : ""}
+        {label} · {players.length}
       </p>
       <div className="space-y-2">
         {players.map((p) => (
@@ -107,13 +111,34 @@ export function TeamEditModal({
     if (!destTeam) return;
 
     const playerId = String(event.active.id);
-    const from = teamA.some((p) => p.player_id === playerId) ? teamA : teamB;
-    const player = from.find((p) => p.player_id === playerId);
-    if (!player || player.team === destTeam) return;
+    const fromTeam: TeamSide = teamA.some((p) => p.player_id === playerId) ? "team_a" : "team_b";
+    if (fromTeam === destTeam) return;
 
-    const moved = { ...player, team: destTeam };
-    setTeamA((prev) => (destTeam === "team_a" ? [...prev.filter((p) => p.player_id !== playerId), moved] : prev.filter((p) => p.player_id !== playerId)));
-    setTeamB((prev) => (destTeam === "team_b" ? [...prev.filter((p) => p.player_id !== playerId), moved] : prev.filter((p) => p.player_id !== playerId)));
+    const sourceList = fromTeam === "team_a" ? teamA : teamB;
+    const destList   = destTeam === "team_a" ? teamA : teamB;
+    const dragged    = sourceList.find((p) => p.player_id === playerId);
+    if (!dragged) return;
+
+    // Both teams are always at capacity here, so dropping onto a full team
+    // always displaces its first occupant back to the team the dragged
+    // player came from — a genuine swap, never a one-way move that would
+    // leave either side over/under capacity.
+    const displaced = destList.length >= teamCap ? destList[0] : undefined;
+
+    const newSource = sourceList
+      .filter((p) => p.player_id !== playerId)
+      .concat(displaced ? [{ ...displaced, team: fromTeam }] : []);
+    const newDest = destList
+      .filter((p) => p.player_id !== displaced?.player_id)
+      .concat([{ ...dragged, team: destTeam }]);
+
+    if (fromTeam === "team_a") {
+      setTeamA(newSource);
+      setTeamB(newDest);
+    } else {
+      setTeamB(newSource);
+      setTeamA(newDest);
+    }
   }
 
   async function handleSave() {
@@ -152,8 +177,8 @@ export function TeamEditModal({
 
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-2 gap-3">
-            <TeamZone id="team_a" label="Team A" players={teamA} full={teamA.length >= teamCap} />
-            <TeamZone id="team_b" label="Team B" players={teamB} full={teamB.length >= teamCap} />
+            <TeamZone id="team_a" label="Team A" players={teamA} />
+            <TeamZone id="team_b" label="Team B" players={teamB} />
           </div>
         </DndContext>
 

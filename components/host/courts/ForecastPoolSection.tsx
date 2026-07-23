@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowRight, Plus, Users } from "lucide-react";
-import { incrementForecastTargetAction } from "@/actions/match.actions";
+import { ArrowRight, Plus, Minus, Users } from "lucide-react";
+import { incrementForecastTargetAction, removeForecastSetAction } from "@/actions/match.actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ManualMatchPicker } from "./ManualMatchPicker";
@@ -26,6 +26,7 @@ export function ForecastPoolSection({
 }: ForecastPoolSectionProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [addingSet, setAddingSet]   = useState(false);
+  const [removingSetId, setRemovingSetId] = useState<string | null>(null);
 
   const readyCount = sets.filter((s) => s.matchId !== null).length;
 
@@ -45,6 +46,22 @@ export function ForecastPoolSection({
     }
   }
 
+  async function handleRemoveSet(matchId: string) {
+    setRemovingSetId(matchId);
+    try {
+      const result = await removeForecastSetAction(sessionId, matchId);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      onChanged();
+    } catch {
+      toast.error("Could not remove this set. Please try again.");
+    } finally {
+      setRemovingSetId(null);
+    }
+  }
+
   // Only ever called for a ready (matchId !== null) set — renderEmptyCard
   // handles the placeholder case separately.
   function renderCard(set: ForecastSet) {
@@ -52,6 +69,11 @@ export function ForecastPoolSection({
     const teamA = set.players.filter((p) => p.team === "team_a");
     const teamB = set.players.filter((p) => p.team === "team_b");
     const isIncomplete = teamA.length !== teamB.length || teamA.length + teamB.length !== playersPerMatch;
+    // Set 1 is never removable — it's the base/default set. setNumber is a
+    // read-time position (oldest auto set = 1), not a stored fact, so this
+    // is a display-only guard; remove_forecast_set enforces the real "keep
+    // at least one" rule server-side regardless of which id gets sent.
+    const canRemove = !set.isManual && set.setNumber > 1;
 
     return (
       <Card
@@ -64,11 +86,25 @@ export function ForecastPoolSection({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               {label}
             </p>
-            {isIncomplete && (
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                Incomplete
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {isIncomplete && (
+                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  Incomplete
+                </span>
+              )}
+              {canRemove && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  title="Remove this set"
+                  loading={removingSetId === set.matchId}
+                  onClick={(e) => { e.stopPropagation(); handleRemoveSet(set.matchId!); }}
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {teamB.length > 0 ? (

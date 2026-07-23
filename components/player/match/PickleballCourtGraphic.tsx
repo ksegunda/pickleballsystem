@@ -59,8 +59,8 @@ function PlayerChip({ player, isMe, compact }: { player: CourtPlayer; isMe: bool
       </Avatar>
       <p
         className={cn(
-          compact ? "max-w-[56px] text-[8.5px]" : "max-w-[72px] text-[11px]",
-          "truncate font-bold text-white [text-shadow:0_1px_3px_rgb(0_0_0_/_0.45)]"
+          compact ? "text-[8.5px]" : "text-[11px]",
+          "w-full truncate font-bold text-white [text-shadow:0_1px_3px_rgb(0_0_0_/_0.45)]"
         )}
       >
         {player.display_name}

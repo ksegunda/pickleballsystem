@@ -79,6 +79,28 @@ export class MatchmakingService {
     return this.queueRepo.getQueueWithStats(sessionId);
   }
 
+  // Deliberately narrower than getCourtsBoard: a plain read of whatever
+  // forecasted sets already exist, no assignForecastToFreeCourts call and
+  // no empty-slot placeholders — those are host-only concerns (a write
+  // side effect, and "waiting for N more players" isn't useful to a
+  // random player browsing the Courts tab). Same setNumber convention as
+  // buildForecastPool (sequential among auto sets only) so "Set 2" here
+  // means the same thing it does on the host board.
+  async getPublicForecastPool(sessionId: string): Promise<ForecastSet[]> {
+    const rows = await this.matchRepo.getForecastPool(sessionId);
+    let autoIndex = 0;
+    return rows.map((row) => {
+      if (!row.is_manual) autoIndex += 1;
+      return {
+        matchId:   row.match_id,
+        setNumber: row.is_manual ? 0 : autoIndex,
+        isManual:  row.is_manual,
+        players:   (row.players as unknown as ForecastSet["players"]) ?? [],
+        missing:   0,
+      };
+    });
+  }
+
   async createLockedSet(sessionId: string, lockType: LockType, players: string[], teams?: TeamSide[]): Promise<string | null> {
     return this.lockRepo.create(sessionId, lockType, players, teams);
   }
@@ -93,6 +115,10 @@ export class MatchmakingService {
 
   async updateMatchTeams(matchId: string, teamA: string[], teamB: string[]): Promise<boolean> {
     return this.matchRepo.updateTeams(matchId, teamA, teamB);
+  }
+
+  async removeForecastSet(matchId: string): Promise<boolean> {
+    return this.matchRepo.removeForecastSet(matchId);
   }
 
   async createManualMatch(sessionId: string, teamA: string[], teamB: string[]): Promise<string | null> {
