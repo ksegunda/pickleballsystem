@@ -60,19 +60,28 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-5 border-b border-border">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
-          {host?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <Zap className="h-4 w-4 text-white" />
-          )}
+      {/* App brand + host identity — one cohesive header block, not two
+          separately-boxed elements (see the duplicate-header bug this
+          exact pattern caused on the player side). */}
+      <div className="border-b border-border px-5 pt-3 pb-3">
+        <div className="flex items-center gap-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="" className="h-4 w-4 rounded" />
+          <span className="text-[11px] font-extrabold tracking-tight text-muted-foreground">PaddleSync</span>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground truncate">{host?.club_name ?? "OpenPlay"}</p>
-          <p className="text-xs text-muted-foreground truncate">{sessionName}</p>
+        <div className="mt-2 flex items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
+            {host?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Zap className="h-4 w-4 text-white" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground truncate">{host?.club_name ?? host?.name ?? "Host"}</p>
+            <p className="text-xs text-muted-foreground truncate">{sessionName}</p>
+          </div>
         </div>
       </div>
 
@@ -151,13 +160,19 @@ export function Sidebar({ sessionId, host, sessionName, sessionStatus }: Sidebar
         <SidebarContent />
       </aside>
 
-      {/* Mobile: hamburger button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
+      {/* Mobile: top bar (brand + menu toggle) — replaces a lone floating
+          button with a proper bar so PaddleSync branding is visible on
+          mobile even with the drawer closed, not just on desktop. */}
+      <div className="lg:hidden fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="" className="h-6 w-6 rounded-md" />
+          <span className="text-sm font-extrabold tracking-tight text-foreground">PaddleSync</span>
+        </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => setMobileOpen((v) => !v)}
-          className="shadow-card-md"
         >
           {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </Button>
