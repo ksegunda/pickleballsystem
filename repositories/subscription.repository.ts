@@ -2,7 +2,14 @@ import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 type DB = TypedSupabaseClient;
 
-const FREE_TIER_MONTHLY_SESSION_LIMIT = 3;
+export type SubscriptionBlockReason = "cancelled" | "free_limit" | null;
+
+export interface SubscriptionLimitCheck {
+  allowed: boolean;
+  limit:   number | null;
+  used:    number;
+  reason:  SubscriptionBlockReason;
+}
 
 export class SubscriptionRepository {
   constructor(private readonly db: DB) {}
@@ -18,7 +25,7 @@ export class SubscriptionRepository {
     // here means an edge case the trigger didn't cover, not a real absence
     // of a plan. Treat it the same as an explicit free plan rather than
     // erroring the whole session-creation flow over a bookkeeping gap.
-    return data ?? { plan_type: "free" as const, status: "active" as const };
+    return data ?? { plan_type: "free" as const, status: "active" as const, expires_at: null, session_limit: 1 };
   }
 
   async countSessionsThisMonth(hostId: string): Promise<number> {
@@ -27,16 +34,29 @@ export class SubscriptionRepository {
     return data ?? 0;
   }
 
-  // Unlimited only while an active paid plan is in force — an
-  // expired/cancelled paid plan falls back to the free cap rather than
-  // silently staying unlimited forever.
-  async isUnderFreeLimitOrUnlimited(hostId: string): Promise<{ allowed: boolean; limit: number | null; used: number }> {
+  // "Cancelled" is a universal, plan-independent hard stop — checked first,
+  // before any plan-type branching — so a cancelled Free host can't still
+  // slip in under the free-tier cap. Expired (Monthly only; Free/Lifetime
+  // can never even reach this status — see migration 029) is deliberately
+  // NOT a hard stop: it falls back to the free-tier cap instead, same as
+  // it always has, rather than a full block.
+  //
+  // The cap itself (session_limit) is per-host, set by the super admin —
+  // not a single hardcoded number for every free host (migration 030).
+  async isUnderFreeLimitOrUnlimited(hostId: string): Promise<SubscriptionLimitCheck> {
     const sub = await this.getByHostId(hostId);
+
+    if (sub.status === "cancelled") {
+      return { allowed: false, limit: 0, used: 0, reason: "cancelled" };
+    }
+
     const isUnlimited = sub.plan_type !== "free" && sub.status === "active";
     if (isUnlimited) {
-      return { allowed: true, limit: null, used: 0 };
+      return { allowed: true, limit: null, used: 0, reason: null };
     }
+
     const used = await this.countSessionsThisMonth(hostId);
-    return { allowed: used < FREE_TIER_MONTHLY_SESSION_LIMIT, limit: FREE_TIER_MONTHLY_SESSION_LIMIT, used };
+    const allowed = used < sub.session_limit;
+    return { allowed, limit: sub.session_limit, used, reason: allowed ? null : "free_limit" };
   }
 }

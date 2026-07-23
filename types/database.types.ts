@@ -60,22 +60,24 @@ export interface Database {
       };
       subscriptions: {
         Row: {
-          id:          string;
-          host_id:     string;
-          plan_type:   SubscriptionPlan;
-          status:      SubscriptionStatus;
-          started_at:  string;
-          expires_at:  string | null;
-          updated_at:  string;
+          id:            string;
+          host_id:       string;
+          plan_type:     SubscriptionPlan;
+          status:        SubscriptionStatus;
+          session_limit: number;
+          started_at:    string;
+          expires_at:    string | null;
+          updated_at:    string;
         };
         Insert: {
-          id?:         string;
-          host_id:     string;
-          plan_type?:  SubscriptionPlan;
-          status?:     SubscriptionStatus;
-          started_at?: string;
-          expires_at?: string | null;
-          updated_at?: string;
+          id?:            string;
+          host_id:        string;
+          plan_type?:     SubscriptionPlan;
+          status?:        SubscriptionStatus;
+          session_limit?: number;
+          started_at?:    string;
+          expires_at?:    string | null;
+          updated_at?:    string;
         };
         Update: Partial<Database["public"]["Tables"]["subscriptions"]["Insert"]>;
         Relationships: [];

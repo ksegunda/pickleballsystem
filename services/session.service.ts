@@ -14,10 +14,15 @@ export class SessionService {
   }
 
   async createSession(hostId: string, input: CreateSessionInput) {
-    const { allowed, limit, used } = await this.subscriptionRepo.isUnderFreeLimitOrUnlimited(hostId);
+    const { allowed, limit, used, reason } = await this.subscriptionRepo.isUnderFreeLimitOrUnlimited(hostId);
     if (!allowed) {
+      if (reason === "cancelled") {
+        throw new Error(
+          "Your subscription has been cancelled. Please contact support to resubscribe and continue creating sessions."
+        );
+      }
       throw new Error(
-        `You've reached your Free plan's limit of ${limit} sessions this month (${used}/${limit} used). Upgrade to Monthly or Lifetime for unlimited sessions.`
+        `You've reached your Free plan's limit of ${limit} session${limit === 1 ? "" : "s"} this month (${used}/${limit} used). Upgrade to Monthly or Lifetime for unlimited sessions.`
       );
     }
 
@@ -131,13 +136,20 @@ export class SessionService {
     return this.subscriptionRepo.getByHostId(hostId);
   }
 
-  // Everything the /sessions plan badge needs in one call — plan/status
-  // plus, for a free host, how many of their monthly 3 they've used.
+  // Everything the /sessions page needs in one call — plan/status, usage,
+  // and whether "New Session" should be disabled (and why), so the page
+  // doesn't need a second round-trip just to render its own banner.
   async getSubscriptionUsage(hostId: string) {
     const [subscription, limitCheck] = await Promise.all([
       this.subscriptionRepo.getByHostId(hostId),
       this.subscriptionRepo.isUnderFreeLimitOrUnlimited(hostId),
     ]);
-    return { ...subscription, used: limitCheck.used, limit: limitCheck.limit };
+    return {
+      ...subscription,
+      used:    limitCheck.used,
+      limit:   limitCheck.limit,
+      allowed: limitCheck.allowed,
+      reason:  limitCheck.reason,
+    };
   }
 }

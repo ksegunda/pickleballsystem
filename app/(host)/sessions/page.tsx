@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Calendar, Users, Zap, LogOut, Trophy, Settings } from "lucide-react";
+import { Calendar, Users, Zap, LogOut, Trophy, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SessionService } from "@/services/session.service";
 import { PlayerService } from "@/services/player.service";
@@ -11,7 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SessionStatusBadge } from "@/components/shared/StatusBadge";
 import { DeleteSessionButton } from "@/components/host/session/DeleteSessionButton";
-import { formatDate, formatSubscriptionPlan } from "@/lib/utils/format";
+import { SubscriptionBadge } from "@/components/host/session/SubscriptionBadge";
+import { NewSessionButton } from "@/components/host/session/NewSessionButton";
+import { SubscriptionLimitBanner } from "@/components/host/session/SubscriptionLimitBanner";
+import { formatDate } from "@/lib/utils/format";
 import { ROUTES } from "@/lib/constants/routes";
 
 export const metadata: Metadata = { title: "Sessions" };
@@ -53,12 +56,9 @@ export default async function SessionsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild size="default">
-              <Link href={ROUTES.NEW_SESSION}>
-                <Plus className="h-4 w-4" />
-                New Session
-              </Link>
-            </Button>
+            {subscription && (
+              <NewSessionButton allowed={subscription.allowed} reason={subscription.reason} />
+            )}
             <Button variant="ghost" size="icon" title="Settings" asChild>
               <Link href={ROUTES.SETTINGS}>
                 <Settings className="h-4 w-4" />
@@ -85,16 +85,23 @@ export default async function SessionsPage() {
             </p>
           </div>
           {subscription && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
-              {formatSubscriptionPlan(subscription.plan_type)}
-              {subscription.plan_type === "free" && subscription.limit !== null && (
-                <span className="font-normal text-primary/70">
-                  · {subscription.used}/{subscription.limit} this month
-                </span>
-              )}
-            </span>
+            <SubscriptionBadge
+              planType={subscription.plan_type}
+              status={subscription.status}
+              used={subscription.used}
+              limit={subscription.limit}
+              expiresAt={subscription.expires_at}
+            />
           )}
         </div>
+
+        {subscription && !subscription.allowed && (
+          <SubscriptionLimitBanner
+            reason={subscription.reason}
+            used={subscription.used}
+            limit={subscription.limit}
+          />
+        )}
 
         {/* Stats bar */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -172,12 +179,13 @@ export default async function SessionsPage() {
                 title="No sessions yet"
                 description="Create your first open play session to get started. Players join instantly via QR code or a 6-character join code."
                 action={
-                  <Button asChild>
-                    <Link href={ROUTES.NEW_SESSION}>
-                      <Plus className="h-4 w-4" />
-                      Create First Session
-                    </Link>
-                  </Button>
+                  subscription && (
+                    <NewSessionButton
+                      allowed={subscription.allowed}
+                      reason={subscription.reason}
+                      label="Create First Session"
+                    />
+                  )
                 }
               />
             </CardContent>

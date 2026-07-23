@@ -22,6 +22,14 @@ export function formatSubscriptionPlan(plan: SubscriptionPlan): string {
   return SUBSCRIPTION_PLAN_LABELS[plan];
 }
 
+// "Expires in 12 days" / "Expired 3 days ago" — only meaningful for a
+// Monthly plan's real expires_at; Free/Lifetime never have one.
+export function formatExpiryCountdown(dateStr: string): string {
+  const date = parseISO(dateStr);
+  const relative = formatDistanceToNow(date, { addSuffix: true });
+  return date.getTime() < Date.now() ? `Expired ${relative}` : `Expires ${relative}`;
+}
+
 export function formatWaitTime(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
   const mins = Math.floor(seconds / 60);

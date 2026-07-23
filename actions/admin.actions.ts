@@ -40,6 +40,7 @@ export interface AdminHostRow {
   plan_type:        SubscriptionPlan;
   status:           SubscriptionStatus;
   expires_at:       string | null;
+  session_limit:    number;
 }
 
 export async function getAllHostsAction(): Promise<ActionResult<AdminHostRow[]>> {
@@ -53,7 +54,7 @@ export async function getAllHostsAction(): Promise<ActionResult<AdminHostRow[]>>
   const admin = createAdminClient();
   const [{ data: hosts, error: hostsError }, { data: subs, error: subsError }] = await Promise.all([
     admin.from("hosts").select("id, name, email, club_name, is_suspended, created_at").order("created_at", { ascending: false }),
-    admin.from("subscriptions").select("host_id, plan_type, status, expires_at"),
+    admin.from("subscriptions").select("host_id, plan_type, status, expires_at, session_limit"),
   ]);
 
   if (hostsError || subsError) {
@@ -65,9 +66,10 @@ export async function getAllHostsAction(): Promise<ActionResult<AdminHostRow[]>>
     const sub = subsByHost.get(h.id);
     return {
       ...h,
-      plan_type:  sub?.plan_type ?? "free",
-      status:     sub?.status ?? "active",
-      expires_at: sub?.expires_at ?? null,
+      plan_type:     sub?.plan_type ?? "free",
+      status:        sub?.status ?? "active",
+      expires_at:    sub?.expires_at ?? null,
+      session_limit: sub?.session_limit ?? 1,
     };
   });
 
@@ -78,7 +80,8 @@ export async function updateHostSubscriptionAction(
   hostId: string,
   planType: SubscriptionPlan,
   status: SubscriptionStatus,
-  expiresAt: string | null
+  expiresAt: string | null,
+  sessionLimit: number
 ): Promise<ActionResult<null>> {
   const adminId = await requirePlatformAdmin();
   if (!adminId) return { success: false, error: "Unauthorized" };
@@ -87,10 +90,11 @@ export async function updateHostSubscriptionAction(
   const { error } = await admin
     .from("subscriptions")
     .update({
-      plan_type:  planType,
+      plan_type:     planType,
       status,
-      expires_at: planType === "lifetime" ? null : expiresAt,
-      updated_at: new Date().toISOString(),
+      expires_at:    planType === "lifetime" ? null : expiresAt,
+      session_limit: sessionLimit,
+      updated_at:    new Date().toISOString(),
     })
     .eq("host_id", hostId);
 
