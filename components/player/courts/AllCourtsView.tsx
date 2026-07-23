@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { MapPin, Users, ArrowRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { MapPin, Users, Swords, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getAllCourtsAction, getPublicQueueAction, getPublicForecastPoolAction } from "@/actions/match.actions";
 import { getStoredPlayerIdentity } from "@/lib/utils/player-identity";
@@ -11,8 +11,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { CourtStatusBadge } from "@/components/shared/StatusBadge";
 import { TimerDisplay } from "@/components/shared/TimerDisplay";
 import { useElapsedSeconds } from "@/lib/hooks/useElapsedSeconds";
-import { PickleballCourtGraphic } from "@/components/player/match/PickleballCourtGraphic";
 import { formatWaitTime } from "@/lib/utils/format";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 import type { Session } from "@/types/session.types";
 import type { CourtView, ForecastSet } from "@/types/match.types";
@@ -30,90 +30,94 @@ interface CourtMatchPlayer {
   team:         TeamSide;
 }
 
-// Shared by the Courts grid and the Next Up grid — a lone card sits
-// centered at the same width a grid cell would give it (instead of
-// stretching bigger), so the layout doesn't visibly "jump" in scale as
-// courts/sets come and go.
-function CardGrid({ items }: { items: ReactNode[] }) {
-  if (items.length === 0) return null;
-  if (items.length === 1) {
-    return (
-      <div className="flex justify-center">
-        <div className="w-[calc(50%-0.25rem)] min-w-[140px]">{items[0]}</div>
-      </div>
-    );
-  }
-  return <div className="grid grid-cols-2 gap-2.5">{items}</div>;
-}
-
-function CourtCell({ court, myPlayerId }: { court: CourtView; myPlayerId: string | null }) {
-  const isMaintenance = court.court_status === "maintenance";
-  const isFree         = !isMaintenance && court.match_id === null;
-  const isLive          = court.match_status === "in_progress";
-  const hasActiveMatch  = court.match_id !== null && (court.match_status === "pending" || isLive);
-
-  if (!hasActiveMatch) {
-    return (
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-3.5 py-3">
-        <span className="text-xs font-semibold text-foreground">{court.court_name}</span>
-        <CourtStatusBadge status={isMaintenance ? "maintenance" : "available"} />
-      </div>
-    );
-  }
-
-  const players = (court.players as unknown as CourtMatchPlayer[]) ?? [];
-  const teamA   = players.filter((p) => p.team === "team_a");
-  const teamB   = players.filter((p) => p.team === "team_b");
-
+function TeamsRow({
+  teamA, teamB, myPlayerId,
+}: {
+  teamA: CourtMatchPlayer[];
+  teamB: CourtMatchPlayer[];
+  myPlayerId: string | null;
+}) {
   return (
-    <PickleballCourtGraphic
-      compact
-      topTeam={teamA}
-      bottomTeam={teamB}
-      meId={myPlayerId ?? ""}
-      header={
-        <>
-          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold text-foreground shadow">
-            {court.court_name}
-          </span>
-          {isLive ? (
-            <span className="rounded-full bg-black/40 px-2 py-0.5 text-green-300">
-              <TimerDisplay startedAt={court.started_at} className="text-[9px] font-bold" />
-            </span>
-          ) : (
-            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold uppercase text-foreground shadow">
-              Ready
-            </span>
-          )}
-        </>
-      }
-    />
+    <div className="flex items-center gap-3 text-sm">
+      <div className="min-w-0 flex-1 space-y-0.5">
+        {teamA.map((p) => (
+          <p key={p.player_id} className={cn("truncate", p.player_id === myPlayerId ? "font-bold text-primary" : "text-foreground")}>
+            {p.display_name}
+          </p>
+        ))}
+      </div>
+      <Swords className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1 space-y-0.5 text-right">
+        {teamB.map((p) => (
+          <p key={p.player_id} className={cn("truncate", p.player_id === myPlayerId ? "font-bold text-primary" : "text-foreground")}>
+            {p.display_name}
+          </p>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function ForecastCell({ set, myPlayerId }: { set: ForecastSet; myPlayerId: string | null }) {
+function CourtRow({ court, myPlayerId }: { court: CourtView; myPlayerId: string | null }) {
+  const players = (court.players as unknown as CourtMatchPlayer[]) ?? [];
+  const teamA   = players.filter((p) => p.team === "team_a");
+  const teamB   = players.filter((p) => p.team === "team_b");
+  const isMaintenance = court.court_status === "maintenance";
+  const isFree         = !isMaintenance && court.match_id === null;
+  const isInProgress   = court.match_status === "in_progress";
+  const hasMe           = players.some((p) => p.player_id === myPlayerId);
+
+  return (
+    <Card className={cn(hasMe && "border-2 border-primary/40 bg-primary/5")}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-accent-foreground" />
+            <span className="font-semibold text-foreground">{court.court_name}</span>
+          </div>
+          {isFree ? (
+            <CourtStatusBadge status="available" />
+          ) : isMaintenance ? (
+            <CourtStatusBadge status="maintenance" />
+          ) : isInProgress ? (
+            <TimerDisplay startedAt={court.started_at} size="sm" />
+          ) : (
+            <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
+              Ready
+            </span>
+          )}
+        </div>
+
+        {isFree || isMaintenance ? (
+          <p className="text-sm text-muted-foreground">
+            {isMaintenance ? "Under maintenance." : "No match right now."}
+          </p>
+        ) : (
+          <TeamsRow teamA={teamA} teamB={teamB} myPlayerId={myPlayerId} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ForecastRow({ set, myPlayerId }: { set: ForecastSet; myPlayerId: string | null }) {
   const teamA = set.players.filter((p) => p.team === "team_a");
   const teamB = set.players.filter((p) => p.team === "team_b");
   const label = set.isManual ? "Manual" : `Set ${set.setNumber}`;
+  const hasMe = set.players.some((p) => p.player_id === myPlayerId);
 
   return (
-    <PickleballCourtGraphic
-      compact
-      reserved
-      topTeam={teamA}
-      bottomTeam={teamB}
-      meId={myPlayerId ?? ""}
-      header={
-        <>
-          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold text-foreground shadow">
-            {label}
-          </span>
-          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold uppercase text-foreground shadow">
+    <Card className={cn(hasMe && "border-2 border-primary/40 bg-primary/5")}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+          <span className="rounded-full bg-accent/20 px-2.5 py-1 text-[10px] font-semibold text-accent-foreground">
             Next Up
           </span>
-        </>
-      }
-    />
+        </div>
+        <TeamsRow teamA={teamA} teamB={teamB} myPlayerId={myPlayerId} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -183,18 +187,16 @@ export function AllCourtsView({ session }: AllCourtsViewProps) {
 
   if (loading) {
     return (
-      <div className="px-5 pt-6 pb-2 space-y-3 max-w-md mx-auto">
+      <div className="px-5 pt-2 pb-2 space-y-3 max-w-md mx-auto">
         <div className="h-8 w-40 animate-pulse rounded bg-muted" />
-        <div className="grid grid-cols-2 gap-3">
-          <div className="aspect-[3/4] w-full animate-pulse rounded-2xl bg-muted" />
-          <div className="aspect-[3/4] w-full animate-pulse rounded-2xl bg-muted" />
-        </div>
+        <div className="h-28 w-full animate-pulse rounded-2xl bg-muted" />
+        <div className="h-28 w-full animate-pulse rounded-2xl bg-muted" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
+    <div className="px-5 pt-2 pb-2 space-y-5 max-w-md mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">Courts</h1>
         <div className="flex flex-col items-end gap-1">
@@ -203,28 +205,27 @@ export function AllCourtsView({ session }: AllCourtsViewProps) {
         </div>
       </div>
 
-      <div className="space-y-2.5">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Courts</h2>
-          <span className="text-xs text-muted-foreground">{courts.length} total</span>
+      {courts.length === 0 ? (
+        <EmptyState icon={MapPin} title="No courts yet" description="The host hasn't set up any courts." />
+      ) : (
+        <div className="space-y-3">
+          {courts.map((court) => (
+            <CourtRow key={court.court_id} court={court} myPlayerId={myPlayerId} />
+          ))}
         </div>
-
-        {courts.length === 0 ? (
-          <EmptyState icon={MapPin} title="No courts yet" description="The host hasn't set up any courts." />
-        ) : (
-          <CardGrid items={courts.map((court) => <CourtCell key={court.court_id} court={court} myPlayerId={myPlayerId} />)} />
-        )}
-      </div>
+      )}
 
       {forecastPool.length > 0 && (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center gap-1.5">
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold text-foreground">Next Up</h2>
-            <span className="text-xs text-muted-foreground">{forecastPool.length} set{forecastPool.length === 1 ? "" : "s"}</span>
           </div>
-          <CardGrid items={forecastPool.map((set) => <ForecastCell key={set.matchId} set={set} myPlayerId={myPlayerId} />)} />
+          <div className="space-y-3">
+            {forecastPool.map((set) => (
+              <ForecastRow key={set.matchId} set={set} myPlayerId={myPlayerId} />
+            ))}
+          </div>
         </div>
       )}
 

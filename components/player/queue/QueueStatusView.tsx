@@ -255,7 +255,7 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
   // reflecting the background confirmation instead of the normal queue UI.
   if (identity?.pending) {
     return (
-      <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
+      <div className="px-5 pt-2 pb-2 space-y-5 max-w-md mx-auto">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-foreground">{session.session_name}</h1>
@@ -318,7 +318,7 @@ export function QueueStatusView({ session }: QueueStatusViewProps) {
   }
 
   return (
-    <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
+    <div className="px-5 pt-2 pb-2 space-y-5 max-w-md mx-auto">
       {/* Session header */}
       <div className="flex items-center justify-between">
         <div>

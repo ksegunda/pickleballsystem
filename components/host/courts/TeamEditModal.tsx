@@ -5,8 +5,9 @@ import {
   DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { GripVertical } from "lucide-react";
+import { GripVertical, TriangleAlert } from "lucide-react";
 import { updateMatchTeamsAction } from "@/actions/match.actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,11 +51,12 @@ function DraggableChip({ id, name }: { id: string; name: string }) {
 }
 
 function TeamZone({
-  id, label, players,
+  id, label, players, teamCap,
 }: {
   id: TeamSide;
   label: string;
   players: RosterPlayer[];
+  teamCap: number;
 }) {
   // Always droppable — both teams are permanently at capacity in this
   // fixed-4-player editor (nothing here ever adds/removes a player), so
@@ -62,6 +64,7 @@ function TeamZone({
   // could sit under capacity waiting for a queue backfill. Dropping onto
   // a full team is a swap (see handleDragEnd), not a capacity violation.
   const { setNodeRef, isOver } = useDroppable({ id });
+  const isOffCount = players.length !== teamCap;
 
   return (
     <div
@@ -70,12 +73,18 @@ function TeamZone({
         isOver ? "border-primary bg-primary/5" : "border-border"
       }`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-        {label} · {players.length}
+      <p
+        className={`text-[10px] font-semibold uppercase tracking-wide ${
+          isOffCount ? "text-destructive" : "text-muted-foreground"
+        }`}
+      >
+        {label} · {players.length}/{teamCap}
       </p>
       <div className="space-y-2">
         {players.map((p) => (
-          <DraggableChip key={p.player_id} id={p.player_id} name={p.display_name} />
+          <motion.div key={p.player_id} layoutId={p.player_id} layout transition={{ duration: 0.22, ease: "easeOut" }}>
+            <DraggableChip id={p.player_id} name={p.display_name} />
+          </motion.div>
         ))}
       </div>
     </div>
@@ -96,6 +105,12 @@ export function TeamEditModal({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const teamCap = Math.ceil(playersPerMatch / 2);
+  // Belt-and-suspenders — the swap logic in handleDragEnd can never actually
+  // produce an uneven/wrong-total split (it only ever exchanges one player
+  // for one player), but this guards against a match that was already
+  // malformed before the modal opened (stale/pre-migration data) rather
+  // than trusting that invariant blindly.
+  const isValid = teamA.length === teamCap && teamB.length === teamCap;
 
   // Reseeds the local buffer fresh from the real roster every time a
   // different match is opened for editing (or the same one is reopened
@@ -142,7 +157,7 @@ export function TeamEditModal({
   }
 
   async function handleSave() {
-    if (!matchId) return;
+    if (!matchId || !isValid) return;
     setSaving(true);
     try {
       const result = await updateMatchTeamsAction(
@@ -177,16 +192,23 @@ export function TeamEditModal({
 
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-2 gap-3">
-            <TeamZone id="team_a" label="Team A" players={teamA} />
-            <TeamZone id="team_b" label="Team B" players={teamB} />
+            <TeamZone id="team_a" label="Team A" players={teamA} teamCap={teamCap} />
+            <TeamZone id="team_b" label="Team B" players={teamB} teamCap={teamCap} />
           </div>
         </DndContext>
+
+        {!isValid && (
+          <p className="flex items-center gap-1.5 text-xs text-destructive">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            Needs exactly {teamCap} players on each team before this can be saved.
+          </p>
+        )}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} loading={saving}>
+          <Button onClick={handleSave} loading={saving} disabled={!isValid}>
             Save Teams
           </Button>
         </DialogFooter>

@@ -45,7 +45,18 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
 
         <div className="mt-[48px] flex flex-1 flex-col gap-[20px]">
           {top.map((p, i) => (
-            <div key={p.rank} className="flex items-center gap-[24px] rounded-[28px] bg-white/15 px-[28px] py-[22px]">
+            <div
+              key={p.rank}
+              // Plain rgba(), not the bg-white/15 Tailwind utility — Tailwind
+              // 3.4 compiles opacity modifiers on non-alpha-aware colors
+              // (white here) to the modern `rgb(r g b / a)` space syntax,
+              // which html2canvas 1.4's color parser can't read and throws
+              // on. This is what was actually causing "Could not generate
+              // the share image" — the whole capture aborted on this one
+              // background-color.
+              style={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+              className="flex items-center gap-[24px] rounded-[28px] px-[28px] py-[22px]"
+            >
               <span className="w-[56px] text-center text-[42px] leading-none">{MEDALS[i] ?? p.rank}</span>
               <span className="flex-1 truncate text-[30px] font-bold">{p.name}</span>
               <span className="text-[28px] font-extrabold tabular-nums">{p.wins} wins</span>

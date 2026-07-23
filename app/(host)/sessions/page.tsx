@@ -49,7 +49,7 @@ export default async function SessionsPage() {
               )}
             </div>
             <div>
-              <p className="text-sm font-bold">OpenPlay</p>
+              <p className="text-sm font-bold">PaddleSync</p>
               <p className="text-xs text-muted-foreground">
                 {host?.club_name ?? host?.name ?? "Host Dashboard"}
               </p>

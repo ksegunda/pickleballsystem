@@ -96,7 +96,7 @@ export function PlayerStatsView({ session }: PlayerStatsViewProps) {
   const winRate     = gamesPlayed === 0 ? 0 : Math.round((wins / gamesPlayed) * 100);
 
   return (
-    <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
+    <div className="px-5 pt-2 pb-2 space-y-5 max-w-md mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-foreground">My Statistics</h1>
         <div className="flex flex-col items-end gap-1">

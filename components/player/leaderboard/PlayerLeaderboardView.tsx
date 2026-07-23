@@ -84,6 +84,9 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return; // user closed the native share sheet
+      // Temporary diagnostic — remove once we've confirmed the color-parsing
+      // fix in LeaderboardShareCard was the only cause.
+      console.error("Leaderboard share image generation failed:", err);
       toast.error("Could not generate the share image. Please try again.");
     } finally {
       setSharing(false);
@@ -120,12 +123,9 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
   const shareYou = me && !shareTop.some((p) => p.rank === me.rank) ? { rank: me.rank, name: me.display_name } : null;
 
   return (
-    <div className="px-5 pt-6 pb-2 space-y-5 max-w-md mx-auto">
-      <div className="flex items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.png" alt="" className="h-6 w-6 rounded-md" />
-        <span className="text-sm font-extrabold tracking-tight text-foreground">PaddleSync</span>
-        <div className="ml-auto"><LiveIndicator /></div>
+    <div className="px-5 pt-2 pb-2 space-y-5 max-w-md mx-auto">
+      <div className="flex justify-end">
+        <LiveIndicator />
       </div>
 
       <div className="text-center">

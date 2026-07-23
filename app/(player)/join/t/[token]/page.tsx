@@ -5,6 +5,7 @@ import { SessionService } from "@/services/session.service";
 import { JoinForm } from "@/components/player/join/JoinForm";
 import { verifyQrToken } from "@/lib/utils/qr-token";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PlayerHeader } from "@/components/player/layout/PlayerHeader";
 
 export const metadata: Metadata = { title: "Join Session" };
 
@@ -18,17 +19,20 @@ export default async function JoinWithQrTokenPage({ params }: PageProps) {
 
   if (!verified) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>QR code expired</CardTitle>
-            <CardDescription>
-              This QR code refreshes automatically every minute for security.
-              Ask your host to show it again and rescan.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <>
+        <PlayerHeader />
+        <div className="flex flex-1 flex-col items-center justify-center p-6">
+          <Card className="w-full max-w-sm">
+            <CardHeader>
+              <CardTitle>QR code expired</CardTitle>
+              <CardDescription>
+                This QR code refreshes automatically every minute for security.
+                Ask your host to show it again and rescan.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </>
     );
   }
 
@@ -41,8 +45,11 @@ export default async function JoinWithQrTokenPage({ params }: PageProps) {
   const settings = await service.getSettings(session.id).catch(() => null);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center p-6">
-      <JoinForm session={session} playerLevel={settings?.player_level ?? null} />
-    </div>
+    <>
+      <PlayerHeader />
+      <div className="flex flex-1 flex-col items-center justify-center p-6">
+        <JoinForm session={session} playerLevel={settings?.player_level ?? null} />
+      </div>
+    </>
   );
 }
