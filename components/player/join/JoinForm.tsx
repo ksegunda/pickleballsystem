@@ -128,7 +128,7 @@ export function JoinForm({ session, playerLevel }: JoinFormProps) {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="name"
-                  placeholder="Alex K."
+                  placeholder="Your name"
                   value={name}
                   onChange={(e) => { setName(e.target.value); setError(null); }}
                   maxLength={30}

@@ -80,10 +80,10 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         <CardContent className="space-y-4 px-0">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Your Name</Label>
+              <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                placeholder="Alex Smith"
+                placeholder="Full Name"
                 autoComplete="name"
                 {...register("name")}
               />
