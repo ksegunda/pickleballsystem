@@ -102,12 +102,19 @@ function PodiumBlock({
         }}
         className="flex flex-col items-center px-[14px] pt-[44px]"
       >
-        <p className="max-w-full truncate text-[26px] font-extrabold">{name}</p>
+        {/* Explicit pixel line-heights + generous margins throughout this
+            stack, not Tailwind's relative "leading" utilities — same
+            reasoning as the club/session name fix: html2canvas measures
+            and draws text itself (canvas fillText()) rather than through
+            the browser's real text layout pipeline, and a relative
+            line-height + a small margin that's provably correct in a
+            normal browser still isn't safe here. */}
+        <p className="max-w-full truncate text-[26px] font-extrabold" style={{ lineHeight: "30px" }}>{name}</p>
         {/* Win rate is the hero stat — biggest text in the block — with the
             W-L record as small supporting text underneath, same hierarchy
             as the on-screen leaderboard row. */}
-        <p className="mt-[6px] text-[34px] font-extrabold tabular-nums leading-none">{winRate}%</p>
-        <p className="mt-[6px] text-[17px] font-semibold" style={{ opacity: 0.8 }}>{wins}W - {losses}L</p>
+        <p className="text-[34px] font-extrabold tabular-nums" style={{ lineHeight: "38px", marginTop: "14px" }}>{winRate}%</p>
+        <p className="text-[17px] font-semibold" style={{ opacity: 0.8, lineHeight: "20px", marginTop: "10px" }}>{wins}W - {losses}L</p>
       </div>
     </div>
   );
@@ -122,8 +129,8 @@ function MoreRow({ entry }: { entry: ShareCardPlayer }) {
       <span className="w-[32px] text-center text-[21px] font-extrabold" style={{ opacity: 0.85 }}>{entry.rank}</span>
       <span className="flex-1 truncate text-[21px] font-bold">{entry.name}</span>
       <div className="text-right">
-        <p className="text-[20px] font-extrabold tabular-nums leading-none">{entry.winRate}%</p>
-        <p className="mt-[3px] text-[13px] font-semibold" style={{ opacity: 0.75 }}>{entry.wins}W - {entry.losses}L</p>
+        <p className="text-[20px] font-extrabold tabular-nums" style={{ lineHeight: "22px" }}>{entry.winRate}%</p>
+        <p className="text-[13px] font-semibold" style={{ opacity: 0.75, lineHeight: "16px", marginTop: "8px" }}>{entry.wins}W - {entry.losses}L</p>
       </div>
     </div>
   );
@@ -209,8 +216,21 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
               />
             )}
             <div className="min-w-0">
-              <p className="truncate text-[44px] font-extrabold leading-tight">{clubName}</p>
-              <p className="mt-[12px] truncate text-[25px] font-semibold" style={{ opacity: 0.85 }}>{sessionName}</p>
+              {/* Explicit pixel line-height (not Tailwind's relative
+                  `leading-tight`) plus a generously large marginTop —
+                  html2canvas does its own text layout/measurement via
+                  canvas fillText() rather than the browser's native text
+                  pipeline, and doesn't reliably reproduce CSS line-height
+                  the way a real rendered page does. A relative unit +
+                  small margin genuinely wasn't safe here, even though the
+                  math checks out in a normal browser. */}
+              <p className="truncate text-[44px] font-extrabold" style={{ lineHeight: "52px" }}>{clubName}</p>
+              <p
+                className="truncate text-[25px] font-semibold"
+                style={{ opacity: 0.85, lineHeight: "32px", marginTop: "28px" }}
+              >
+                {sessionName}
+              </p>
             </div>
           </div>
 
