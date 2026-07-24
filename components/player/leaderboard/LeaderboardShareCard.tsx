@@ -1,9 +1,11 @@
 import { forwardRef } from "react";
 
 export interface ShareCardPlayer {
-  rank: number;
-  name: string;
-  wins: number;
+  rank:    number;
+  name:    string;
+  wins:    number;
+  losses:  number;
+  winRate: number;
 }
 
 interface LeaderboardShareCardProps {
@@ -27,14 +29,18 @@ interface LeaderboardShareCardProps {
 }
 
 // Literal hex throughout this whole file — deliberately NOT Tailwind color
-// utilities or hsl(var(--x)). Even a plain `text-white` with no opacity
-// modifier compiles to `rgb(r g b / var(--tw-text-opacity, 1))`, and
-// gradient from-*/via-* utilities emit `hsl(var(--x) / 0)` fade stops —
-// both are modern CSS Color 4 slash-alpha syntax that html2canvas's color
-// parser can't read, and it aborts the WHOLE capture on the first one it
-// hits (this is what broke the Share feature twice already). This card
-// doesn't need theme reactivity anyway, so plain hex sidesteps the entire
-// class of bug instead of chasing it one class at a time.
+// utilities or hsl(var(--x)), and no CSS `filter` (blur/drop-shadow) either.
+// Even a plain `text-white` with no opacity modifier compiles to
+// `rgb(r g b / var(--tw-text-opacity, 1))`, and gradient from-*/via-*
+// utilities emit `hsl(var(--x) / 0)` fade stops — both are modern CSS
+// Color 4 slash-alpha syntax that html2canvas's color parser can't read,
+// and it aborts the WHOLE capture on the first one it hits (this is what
+// broke Share twice already). `filter` is a separate, also-real risk —
+// html2canvas has historically had weak/no support for it — so the
+// decorative background glow below uses radial-gradient (a background
+// image, fully supported, same mechanism as the main gradient) instead
+// of a blurred shape. This card doesn't need theme reactivity anyway, so
+// plain hex + gradients sidestep the entire class of bug.
 const BRAND = {
   primary:   "#2b6fab",
   secondary: "#2b72a1",
@@ -42,6 +48,7 @@ const BRAND = {
   white:     "#ffffff",
   darkText:  "#16324a",
   cream:     "#f9e8a2",
+  aqua:      "#b4e1eb",
 };
 
 interface MedalColors {
@@ -58,27 +65,29 @@ const MEDAL: Record<"gold" | "silver" | "bronze", MedalColors> = {
 };
 
 function PodiumBlock({
-  rank, name, wins, height, medal,
+  rank, name, wins, losses, winRate, height, medal,
 }: {
-  rank:   1 | 2 | 3;
-  name:   string;
-  wins:   number;
-  height: number;
-  medal:  MedalColors;
+  rank:    1 | 2 | 3;
+  name:    string;
+  wins:    number;
+  losses:  number;
+  winRate: number;
+  height:  number;
+  medal:   MedalColors;
 }) {
   return (
-    <div className="flex flex-col items-center" style={{ width: 300 }}>
+    <div className="flex flex-col items-center" style={{ width: 310 }}>
       <div
         style={{
-          width: 84, height: 84, borderRadius: 9999,
+          width: 92, height: 92, borderRadius: 9999,
           backgroundColor: medal.badge,
           color: medal.text,
           border: `5px solid ${BRAND.white}`,
-          boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
-          marginBottom: -22,
+          boxShadow: "0 6px 18px rgba(0,0,0,0.28)",
+          marginBottom: -24,
           zIndex: 2,
         }}
-        className="relative flex items-center justify-center text-[38px] font-extrabold"
+        className="relative flex items-center justify-center text-[42px] font-extrabold"
       >
         {rank}
       </div>
@@ -87,14 +96,18 @@ function PodiumBlock({
           width: "100%",
           height,
           backgroundImage: `linear-gradient(180deg, ${medal.top}, ${medal.bottom})`,
-          borderRadius: "28px 28px 0 0",
+          borderRadius: "30px 30px 0 0",
           color: medal.text,
-          boxShadow: "0 -6px 20px rgba(0,0,0,0.18)",
+          boxShadow: "0 -6px 22px rgba(0,0,0,0.2)",
         }}
-        className="flex flex-col items-center px-[12px] pt-[38px]"
+        className="flex flex-col items-center px-[14px] pt-[44px]"
       >
         <p className="max-w-full truncate text-[26px] font-extrabold">{name}</p>
-        <p className="mt-[4px] text-[19px] font-bold" style={{ opacity: 0.8 }}>{wins} wins</p>
+        {/* Win rate is the hero stat — biggest text in the block — with the
+            W-L record as small supporting text underneath, same hierarchy
+            as the on-screen leaderboard row. */}
+        <p className="mt-[6px] text-[34px] font-extrabold tabular-nums leading-none">{winRate}%</p>
+        <p className="mt-[6px] text-[17px] font-semibold" style={{ opacity: 0.8 }}>{wins}W - {losses}L</p>
       </div>
     </div>
   );
@@ -104,11 +117,47 @@ function MoreRow({ entry }: { entry: ShareCardPlayer }) {
   return (
     <div
       style={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
-      className="flex items-center gap-[16px] rounded-[18px] px-[22px] py-[13px]"
+      className="flex items-center gap-[16px] rounded-[18px] px-[24px] py-[15px]"
     >
-      <span className="w-[32px] text-center text-[20px] font-extrabold" style={{ opacity: 0.85 }}>{entry.rank}</span>
-      <span className="flex-1 truncate text-[20px] font-bold">{entry.name}</span>
-      <span className="text-[18px] font-extrabold tabular-nums" style={{ opacity: 0.85 }}>{entry.wins} wins</span>
+      <span className="w-[32px] text-center text-[21px] font-extrabold" style={{ opacity: 0.85 }}>{entry.rank}</span>
+      <span className="flex-1 truncate text-[21px] font-bold">{entry.name}</span>
+      <div className="text-right">
+        <p className="text-[20px] font-extrabold tabular-nums leading-none">{entry.winRate}%</p>
+        <p className="mt-[3px] text-[13px] font-semibold" style={{ opacity: 0.75 }}>{entry.wins}W - {entry.losses}L</p>
+      </div>
+    </div>
+  );
+}
+
+// Two soft radial-gradient "glows" plus a faint dot-grid — decorative
+// texture using only background-image (gradients), never CSS `filter`.
+// Sits behind the real content via z-index, clipped to the card by the
+// root's overflow:hidden.
+function BackgroundDecoration() {
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+      <div
+        style={{
+          position: "absolute", top: -140, right: -120, width: 560, height: 560, borderRadius: 9999,
+          // Classic rgba() comma syntax, not an 8-digit hex alpha suffix —
+          // regex-based color parsers (html2canvas included) support this
+          // far more consistently than #RRGGBBAA.
+          backgroundImage: "radial-gradient(circle, rgba(249, 232, 162, 0.16) 0%, rgba(249, 232, 162, 0) 70%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute", bottom: -160, left: -140, width: 520, height: 520, borderRadius: 9999,
+          backgroundImage: "radial-gradient(circle, rgba(180, 225, 235, 0.14) 0%, rgba(180, 225, 235, 0) 70%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1.5px, transparent 1.5px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
     </div>
   );
 }
@@ -132,65 +181,70 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
         style={{
           width: 1080,
           height: 1080,
+          position: "relative",
+          overflow: "hidden",
           backgroundImage: `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.secondary}, ${BRAND.navy})`,
           color: BRAND.white,
         }}
-        className="flex flex-col p-[60px]"
       >
-        {/* Attribution — small, de-emphasized. The club is the star of this card. */}
-        <div className="flex items-center gap-[8px]" style={{ opacity: 0.75 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- captured by html2canvas, not a normal page image */}
-          <img src="/icon.png" alt="" crossOrigin="anonymous" style={{ width: 22, height: 22, borderRadius: 6 }} />
-          <span className="text-[15px] font-bold uppercase tracking-[0.08em]">Powered by PaddleSync</span>
-        </div>
+        <BackgroundDecoration />
 
-        {/* Club identity */}
-        <div className="mt-[20px] flex items-center gap-[20px]">
-          {hostAvatarUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={hostAvatarUrl}
-              alt=""
-              crossOrigin="anonymous"
-              style={{ width: 72, height: 72, borderRadius: 20, objectFit: "cover", flexShrink: 0 }}
-            />
+        <div style={{ position: "relative", zIndex: 1 }} className="flex h-full flex-col p-[72px]">
+          {/* Attribution — small, de-emphasized. The club is the star of this card. */}
+          <div className="flex items-center gap-[10px]" style={{ opacity: 0.75 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- captured by html2canvas, not a normal page image */}
+            <img src="/icon.png" alt="" crossOrigin="anonymous" style={{ width: 30, height: 30, borderRadius: 8 }} />
+            <span className="text-[16px] font-bold uppercase tracking-[0.08em]">Powered by PaddleSync</span>
+          </div>
+
+          {/* Club identity */}
+          <div className="mt-[24px] flex items-center gap-[24px]">
+            {hostAvatarUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={hostAvatarUrl}
+                alt=""
+                crossOrigin="anonymous"
+                style={{ width: 100, height: 100, borderRadius: 26, objectFit: "cover", flexShrink: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.25)" }}
+              />
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-[44px] font-extrabold leading-tight">{clubName}</p>
+              <p className="mt-[12px] truncate text-[25px] font-semibold" style={{ opacity: 0.85 }}>{sessionName}</p>
+            </div>
+          </div>
+
+          <p className="mt-[16px] text-[20px]" style={{ opacity: 0.7 }}>
+            {dateLabel} · {totalPlayers} players · {totalGames} games · {totalCourts} courts
+          </p>
+
+          {/* Podium */}
+          <div className="mt-[64px] flex items-end justify-center gap-[28px]">
+            {second && <PodiumBlock rank={2} name={second.name} wins={second.wins} losses={second.losses} winRate={second.winRate} height={230} medal={MEDAL.silver} />}
+            {first  && <PodiumBlock rank={1} name={first.name}  wins={first.wins}  losses={first.losses}  winRate={first.winRate}  height={320} medal={MEDAL.gold} />}
+            {third  && <PodiumBlock rank={3} name={third.name}  wins={third.wins}  losses={third.losses}  winRate={third.winRate}  height={175} medal={MEDAL.bronze} />}
+          </div>
+
+          {more.length > 0 && (
+            <div className="mt-[40px] flex flex-col gap-[12px]">
+              {more.map((entry) => <MoreRow key={entry.rank} entry={entry} />)}
+            </div>
           )}
-          <div className="min-w-0">
-            <p className="truncate text-[38px] font-extrabold leading-tight">{clubName}</p>
-            <p className="mt-[2px] truncate text-[23px] font-semibold" style={{ opacity: 0.85 }}>{sessionName}</p>
-          </div>
+
+          {you && (
+            <div
+              style={{ backgroundColor: BRAND.white, color: BRAND.darkText }}
+              className="mt-auto flex items-center justify-between rounded-[24px] px-[30px] py-[22px]"
+            >
+              <span className="text-[23px] font-bold">{you.name}&apos;s rank</span>
+              <span className="text-[28px] font-extrabold">#{you.rank} of {totalPlayers}</span>
+            </div>
+          )}
+
+          <p className={you ? "mt-[20px]" : "mt-auto"} style={{ opacity: 0.6 }}>
+            <span className="block text-center text-[18px] tracking-[0.03em]">paddlesync.app</span>
+          </p>
         </div>
-
-        <p className="mt-[14px] text-[19px]" style={{ opacity: 0.7 }}>
-          {dateLabel} · {totalPlayers} players · {totalGames} games · {totalCourts} courts
-        </p>
-
-        {/* Podium */}
-        <div className="mt-[46px] flex items-end justify-center gap-[24px]">
-          {second && <PodiumBlock rank={2} name={second.name} wins={second.wins} height={200} medal={MEDAL.silver} />}
-          {first  && <PodiumBlock rank={1} name={first.name}  wins={first.wins}  height={280} medal={MEDAL.gold} />}
-          {third  && <PodiumBlock rank={3} name={third.name}  wins={third.wins}  height={155} medal={MEDAL.bronze} />}
-        </div>
-
-        {more.length > 0 && (
-          <div className="mt-[36px] flex flex-col gap-[10px]">
-            {more.map((entry) => <MoreRow key={entry.rank} entry={entry} />)}
-          </div>
-        )}
-
-        {you && (
-          <div
-            style={{ backgroundColor: BRAND.white, color: BRAND.darkText }}
-            className="mt-auto flex items-center justify-between rounded-[24px] px-[28px] py-[20px]"
-          >
-            <span className="text-[22px] font-bold">{you.name}&apos;s rank</span>
-            <span className="text-[27px] font-extrabold">#{you.rank} of {totalPlayers}</span>
-          </div>
-        )}
-
-        <p className={you ? "mt-[18px]" : "mt-auto"} style={{ opacity: 0.6 }}>
-          <span className="block text-center text-[17px] tracking-[0.03em]">paddlesync.app</span>
-        </p>
       </div>
     );
   }

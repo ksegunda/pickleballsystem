@@ -187,8 +187,11 @@ export function PlayerLeaderboardView({ session, hostAvatarUrl }: PlayerLeaderbo
   const totalPlayers = session.summary?.total_players ?? rows.length;
   const totalGames   = session.summary?.matches_completed ?? "—";
   const totalCourts  = session.summary?.number_of_courts ?? "—";
-  const sharePodium: ShareCardPlayer[] = rows.slice(0, 3).map((r) => ({ rank: r.rank, name: r.display_name, wins: r.wins }));
-  const shareMore: ShareCardPlayer[]   = rows.slice(3, 5).map((r) => ({ rank: r.rank, name: r.display_name, wins: r.wins }));
+  const toShareCardPlayer = (r: LeaderboardRow): ShareCardPlayer => (
+    { rank: r.rank, name: r.display_name, wins: r.wins, losses: r.losses, winRate: r.win_rate }
+  );
+  const sharePodium: ShareCardPlayer[] = rows.slice(0, 3).map(toShareCardPlayer);
+  const shareMore: ShareCardPlayer[]   = rows.slice(3, 5).map(toShareCardPlayer);
   const shareYou = me
     && !sharePodium.some((p) => p.rank === me.rank)
     && !shareMore.some((p) => p.rank === me.rank)
