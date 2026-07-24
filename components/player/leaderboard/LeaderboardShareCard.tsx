@@ -57,7 +57,7 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
       >
         <div className="flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element -- captured by html2canvas, not a normal page image */}
-          <img src="/icon.png" alt="" className="h-[64px] w-[64px] rounded-[18px]" />
+          <img src="/icon.png" alt="" crossOrigin="anonymous" className="h-[64px] w-[64px] rounded-[18px]" />
           <span className="text-[34px] font-extrabold tracking-tight">PaddleSync</span>
         </div>
 

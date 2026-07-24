@@ -34,6 +34,25 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
+// html2canvas's own "wait for images" detection isn't reliable on every
+// mobile browser (slower network/CPU makes it much easier to catch an
+// <img> mid-load than on desktop) — waiting explicitly here removes that
+// race entirely instead of hoping html2canvas's internal timing covers it.
+// Resolves (doesn't reject) on a failed image load too, so one broken
+// image can't hang the whole share flow forever.
+function waitForImages(container: HTMLElement): Promise<void> {
+  const imgs = Array.from(container.querySelectorAll("img"));
+  return Promise.all(
+    imgs.map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        img.addEventListener("load", () => resolve(), { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
+      });
+    })
+  ).then(() => undefined);
+}
+
 export function PlayerLeaderboardView({ session, hostAvatarUrl }: PlayerLeaderboardViewProps) {
   const [rows, setRows]         = useState<LeaderboardRow[] | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -68,7 +87,8 @@ export function PlayerLeaderboardView({ session, hostAvatarUrl }: PlayerLeaderbo
     if (!shareCardRef.current) return;
     setSharing(true);
     try {
-      const canvas = await html2canvas(shareCardRef.current, { backgroundColor: null });
+      await waitForImages(shareCardRef.current);
+      const canvas = await html2canvas(shareCardRef.current, { backgroundColor: null, useCORS: true });
       const blob = await canvasToBlob(canvas);
       if (!blob) {
         toast.error("Could not generate the image. Please try again.");
@@ -88,10 +108,13 @@ export function PlayerLeaderboardView({ session, hostAvatarUrl }: PlayerLeaderbo
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return; // user closed the native share sheet
-      // Temporary diagnostic — remove once we've confirmed the color-parsing
-      // fix in LeaderboardShareCard was the only cause.
+      // Temporary diagnostic — surfaces the real error text directly in the
+      // toast (not just the console) so this is debuggable from a phone
+      // with no cable/DevTools involved. Remove once mobile sharing is
+      // confirmed working.
       console.error("Leaderboard share image generation failed:", err);
-      toast.error("Could not generate the share image. Please try again.");
+      const detail = err instanceof Error ? err.message : String(err);
+      toast.error(`Could not generate the share image: ${detail}`);
     } finally {
       setSharing(false);
     }
