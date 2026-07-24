@@ -72,7 +72,7 @@ export class SessionService {
         weight_waiting_time:    0.40,
         weight_games_played:    0.35,
         weight_performance:     0.25,
-        anti_repeat_threshold:  input.settings?.anti_repeat_threshold ?? 3,
+        anti_repeat_threshold:  input.settings?.anti_repeat_threshold ?? 1,
       });
     } catch (err) {
       await this.repo.delete(session.id).catch(() => {});

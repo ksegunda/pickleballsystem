@@ -36,7 +36,7 @@ export const createSessionSchema = z.object({
     games_to_win:           z.number().int().min(1).max(21).default(11),
     match_format:           z.enum(["singles", "doubles"]).default("doubles"),
     player_level:           z.enum(["all_levels", "beginner", "intermediate", "advanced"]).default("all_levels"),
-    anti_repeat_threshold:  z.number().int().min(1).max(10).default(3),
+    anti_repeat_threshold:  z.number().int().min(1).max(10).default(1),
   }),
 }).refine(
   (data) => {
