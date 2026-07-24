@@ -19,17 +19,41 @@ interface LeaderboardShareCardProps {
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
+// Literal hex, matching --primary/--secondary — deliberately NOT the
+// Tailwind primary/secondary/white utility classes or hsl(var(--x)) here.
+// Every Tailwind color utility (even a plain `text-white` with no opacity
+// modifier, even an arbitrary `text-[#hex]`) compiles to
+// `rgb(r g b / var(--tw-*-opacity, 1))`, and gradient `from-*`/`via-*`
+// utilities emit `hsl(var(--x) / 0)` fade-out stops — both are modern
+// CSS Color 4 slash-alpha syntax that html2canvas 1.4's color parser
+// can't read, and it aborts the WHOLE capture the instant it hits one.
+// This card is a fixed-design asset that doesn't need theme reactivity
+// anyway, so plain hex inline styles sidestep the entire class of bug
+// rather than chasing it one class at a time.
+const COLOR = {
+  primary:   "#2b6fab",
+  secondary: "#2b72a1",
+  navy:      "#1c3a52",
+  white:     "#ffffff",
+  darkText:  "#16324a",
+};
+
 // Rendered off-screen at its real 1080x1080 output size (not scaled up
 // later) so every measurement in here matches the final PNG 1:1 — see
-// LeaderboardShareCardTrigger for why: html2canvas captures this exact
+// PlayerLeaderboardView's handleShare: html2canvas captures this exact
 // DOM node, so what's laid out here is exactly what gets shared.
 export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareCardProps>(
   function LeaderboardShareCard({ clubName, sessionName, dateLabel, totalPlayers, top, you }, ref) {
     return (
       <div
         ref={ref}
-        style={{ width: 1080, height: 1080 }}
-        className="flex flex-col bg-gradient-to-br from-primary via-secondary to-[#1c3a52] p-[64px] text-white"
+        style={{
+          width: 1080,
+          height: 1080,
+          backgroundImage: `linear-gradient(135deg, ${COLOR.primary}, ${COLOR.secondary}, ${COLOR.navy})`,
+          color: COLOR.white,
+        }}
+        className="flex flex-col p-[64px]"
       >
         <div className="flex items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element -- captured by html2canvas, not a normal page image */}
@@ -47,13 +71,6 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
           {top.map((p, i) => (
             <div
               key={p.rank}
-              // Plain rgba(), not the bg-white/15 Tailwind utility — Tailwind
-              // 3.4 compiles opacity modifiers on non-alpha-aware colors
-              // (white here) to the modern `rgb(r g b / a)` space syntax,
-              // which html2canvas 1.4's color parser can't read and throws
-              // on. This is what was actually causing "Could not generate
-              // the share image" — the whole capture aborted on this one
-              // background-color.
               style={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
               className="flex items-center gap-[24px] rounded-[28px] px-[28px] py-[22px]"
             >
@@ -65,7 +82,10 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
         </div>
 
         {you && (
-          <div className="mt-[20px] flex items-center justify-between rounded-[28px] bg-white px-[32px] py-[24px] text-[#16324a]">
+          <div
+            style={{ backgroundColor: COLOR.white, color: COLOR.darkText }}
+            className="mt-[20px] flex items-center justify-between rounded-[28px] px-[32px] py-[24px]"
+          >
             <span className="text-[26px] font-bold">{you.name}&apos;s rank</span>
             <span className="text-[32px] font-extrabold">#{you.rank} of {totalPlayers}</span>
           </div>
