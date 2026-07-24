@@ -149,19 +149,25 @@ function BackgroundDecoration() {
           // Classic rgba() comma syntax, not an 8-digit hex alpha suffix —
           // regex-based color parsers (html2canvas included) support this
           // far more consistently than #RRGGBBAA.
-          backgroundImage: "radial-gradient(circle, rgba(249, 232, 162, 0.16) 0%, rgba(249, 232, 162, 0) 70%)",
+          backgroundImage: "radial-gradient(circle, rgba(249, 232, 162, 0.07) 0%, rgba(249, 232, 162, 0) 70%)",
         }}
       />
       <div
         style={{
           position: "absolute", bottom: -160, left: -140, width: 520, height: 520, borderRadius: 9999,
-          backgroundImage: "radial-gradient(circle, rgba(180, 225, 235, 0.14) 0%, rgba(180, 225, 235, 0) 70%)",
+          backgroundImage: "radial-gradient(circle, rgba(180, 225, 235, 0.06) 0%, rgba(180, 225, 235, 0) 70%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute", top: 300, left: -80, width: 300, height: 300, borderRadius: 9999,
+          backgroundImage: "radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 70%)",
         }}
       />
       <div
         style={{
           position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1.5px, transparent 1.5px)",
+          backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1.5px, transparent 1.5px)",
           backgroundSize: "32px 32px",
         }}
       />
@@ -196,7 +202,7 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
       >
         <BackgroundDecoration />
 
-        <div style={{ position: "relative", zIndex: 1 }} className="flex h-full flex-col p-[72px]">
+        <div style={{ position: "relative", zIndex: 1 }} className="flex h-full flex-col p-[80px]">
           {/* Attribution — small, de-emphasized. The club is the star of this card. */}
           <div className="flex items-center gap-[10px]" style={{ opacity: 0.75 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- captured by html2canvas, not a normal page image */}
@@ -205,14 +211,14 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
           </div>
 
           {/* Club identity */}
-          <div className="mt-[24px] flex items-center gap-[24px]">
+          <div className="mt-[28px] flex items-center gap-[24px]">
             {hostAvatarUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={hostAvatarUrl}
                 alt=""
                 crossOrigin="anonymous"
-                style={{ width: 100, height: 100, borderRadius: 26, objectFit: "cover", flexShrink: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.25)" }}
+                style={{ width: 94, height: 94, borderRadius: 24, objectFit: "cover", flexShrink: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.25)" }}
               />
             )}
             <div className="min-w-0">
@@ -227,26 +233,26 @@ export const LeaderboardShareCard = forwardRef<HTMLDivElement, LeaderboardShareC
               <p className="truncate text-[44px] font-extrabold" style={{ lineHeight: "52px" }}>{clubName}</p>
               <p
                 className="truncate text-[25px] font-semibold"
-                style={{ opacity: 0.85, lineHeight: "32px", marginTop: "28px" }}
+                style={{ opacity: 0.85, lineHeight: "32px", marginTop: "38px" }}
               >
                 {sessionName}
               </p>
             </div>
           </div>
 
-          <p className="mt-[16px] text-[20px]" style={{ opacity: 0.7 }}>
+          <p className="mt-[20px] text-[20px]" style={{ opacity: 0.7 }}>
             {dateLabel} · {totalPlayers} players · {totalGames} games · {totalCourts} courts
           </p>
 
           {/* Podium */}
-          <div className="mt-[64px] flex items-end justify-center gap-[28px]">
+          <div className="mt-[72px] flex items-end justify-center gap-[28px]">
             {second && <PodiumBlock rank={2} name={second.name} wins={second.wins} losses={second.losses} winRate={second.winRate} height={230} medal={MEDAL.silver} />}
             {first  && <PodiumBlock rank={1} name={first.name}  wins={first.wins}  losses={first.losses}  winRate={first.winRate}  height={320} medal={MEDAL.gold} />}
             {third  && <PodiumBlock rank={3} name={third.name}  wins={third.wins}  losses={third.losses}  winRate={third.winRate}  height={175} medal={MEDAL.bronze} />}
           </div>
 
           {more.length > 0 && (
-            <div className="mt-[40px] flex flex-col gap-[12px]">
+            <div className="mt-[48px] flex flex-col gap-[12px]">
               {more.map((entry) => <MoreRow key={entry.rank} entry={entry} />)}
             </div>
           )}
