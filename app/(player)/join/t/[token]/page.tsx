@@ -42,13 +42,20 @@ export default async function JoinWithQrTokenPage({ params }: PageProps) {
 
   if (!session || !["pending", "active"].includes(session.status)) notFound();
 
-  const settings = await service.getSettings(session.id).catch(() => null);
+  const [settings, branding] = await Promise.all([
+    service.getSettings(session.id).catch(() => null),
+    service.getSessionBranding(session.id).catch(() => null),
+  ]);
 
   return (
     <>
       <PlayerHeader />
       <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <JoinForm session={session} playerLevel={settings?.player_level ?? null} />
+        <JoinForm
+          session={session}
+          playerLevel={settings?.player_level ?? null}
+          hostAvatarUrl={branding?.host_avatar_url ?? null}
+        />
       </div>
     </>
   );

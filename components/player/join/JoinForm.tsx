@@ -18,11 +18,14 @@ import type { PlayerLevel } from "@/types/database.types";
 const DEVICE_TOKEN_KEY = "openplay_device_token";
 
 interface JoinFormProps {
-  session: Session;
-  playerLevel?: PlayerLevel | null;
+  session:        Session;
+  playerLevel?:   PlayerLevel | null;
+  // The host's own uploaded club logo (hosts.avatar_url), shown above the
+  // "Join Open Play" heading. Null when the host hasn't uploaded one.
+  hostAvatarUrl?: string | null;
 }
 
-export function JoinForm({ session, playerLevel }: JoinFormProps) {
+export function JoinForm({ session, playerLevel, hostAvatarUrl }: JoinFormProps) {
   const router = useRouter();
   const [name, setName]         = useState("");
   const [error, setError]       = useState<string | null>(null);
@@ -81,7 +84,18 @@ export function JoinForm({ session, playerLevel }: JoinFormProps) {
       transition={{ duration: 0.4 }}
     >
       <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold text-foreground">Join Open Play</h1>
+        {hostAvatarUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hostAvatarUrl}
+            alt=""
+            className="mx-auto mb-2 h-14 w-14 rounded-2xl object-cover shadow-card"
+          />
+        )}
+        {hostAvatarUrl && (
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">{session.club_name}</p>
+        )}
+        <h1 className="mt-1 text-xl font-bold text-foreground">Join Open Play</h1>
         <p className="mt-1 text-sm text-muted-foreground">You&apos;ve been invited to join</p>
       </div>
 

@@ -14,9 +14,10 @@ export default async function PlayerLeaderboardPage({ params }: PageProps) {
   const supabase = await createClient();
   const service  = new SessionService(supabase);
 
-  const [session, summary] = await Promise.all([
+  const [session, summary, branding] = await Promise.all([
     service.getSession(sessionId).catch(() => null),
     service.getSessionSummary(sessionId).catch(() => undefined),
+    service.getSessionBranding(sessionId).catch(() => null),
   ]);
   if (!session) {
     return (
@@ -29,5 +30,10 @@ export default async function PlayerLeaderboardPage({ params }: PageProps) {
     );
   }
 
-  return <PlayerLeaderboardView session={{ ...session, summary }} />;
+  return (
+    <PlayerLeaderboardView
+      session={{ ...session, summary }}
+      hostAvatarUrl={branding?.host_avatar_url ?? null}
+    />
+  );
 }

@@ -39,21 +39,14 @@ export default async function SessionsPage() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
-              {host?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={host.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <Zap className="h-4 w-4 text-white" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-bold">PaddleSync</p>
-              <p className="text-xs text-muted-foreground">
-                {host?.club_name ?? host?.name ?? "Host Dashboard"}
-              </p>
-            </div>
+          {/* Pure app branding — the host's own club identity (logo/name)
+              already appears in the welcome banner just below, so this
+              stays a plain PaddleSync mark, same style as the player-side
+              AppBrandHeader, not a mix of the two. */}
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.png" alt="" className="h-6 w-6 rounded-md" />
+            <span className="text-sm font-extrabold tracking-tight text-foreground">PaddleSync</span>
           </div>
           <div className="flex items-center gap-2">
             {subscription && (

@@ -110,6 +110,10 @@ export class SessionService {
     return this.repo.findSummaryById(sessionId);
   }
 
+  async getSessionBranding(sessionId: string) {
+    return this.repo.findBranding(sessionId);
+  }
+
   async getSession(sessionId: string) {
     return this.repo.findById(sessionId);
   }

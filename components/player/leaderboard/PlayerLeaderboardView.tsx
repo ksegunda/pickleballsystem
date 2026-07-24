@@ -23,14 +23,18 @@ type LeaderboardRow = Database["public"]["Views"]["leaderboard_view"]["Row"];
 const TOP_N = 10;
 
 interface PlayerLeaderboardViewProps {
-  session: SessionWithSummary;
+  session:       SessionWithSummary;
+  // The host's own uploaded club logo (hosts.avatar_url) — distinct from
+  // the PaddleSync app icon shown in AppBrandHeader. Null when the host
+  // hasn't uploaded one; the block below just doesn't render then.
+  hostAvatarUrl: string | null;
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
-export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
+export function PlayerLeaderboardView({ session, hostAvatarUrl }: PlayerLeaderboardViewProps) {
   const [rows, setRows]         = useState<LeaderboardRow[] | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [sharing, setSharing]   = useState(false);
@@ -129,6 +133,14 @@ export function PlayerLeaderboardView({ session }: PlayerLeaderboardViewProps) {
       </div>
 
       <div className="text-center">
+        {hostAvatarUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hostAvatarUrl}
+            alt=""
+            className="mx-auto mb-2 h-12 w-12 rounded-xl object-cover shadow-card"
+          />
+        )}
         <p className="text-[11px] font-bold uppercase tracking-wide text-primary">{session.club_name}</p>
         <p className="mt-1 text-lg font-extrabold text-foreground">{session.session_name}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{formatDateFull(session.session_date)}</p>

@@ -508,6 +508,14 @@ export interface Database {
         };
         Relationships: [];
       };
+      session_branding_view: {
+        Row: {
+          session_id:       string;
+          club_name:        string;
+          host_avatar_url:  string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       generate_join_code: {

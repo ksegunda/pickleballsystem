@@ -48,6 +48,19 @@ export class SessionRepository {
     return data;
   }
 
+  // Public/player-facing — session_branding_view exposes only club_name
+  // + host_avatar_url (not the rest of the `hosts` row, which has no
+  // public RLS policy), so this is safe to call unauthenticated.
+  async findBranding(sessionId: string) {
+    const { data, error } = await this.db
+      .from("session_branding_view")
+      .select("*")
+      .eq("session_id", sessionId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
   async create(payload: SessionInsert) {
     const { data, error } = await this.db
       .from("sessions")
