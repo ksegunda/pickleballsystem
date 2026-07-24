@@ -1,11 +1,14 @@
-// Plain <img>, not next/image — the real logo file's dimensions aren't
-// known ahead of time, so this scales by height alone (h-* + w-auto)
-// rather than requiring an intrinsic width/height up front.
+import { AppBrandHeader } from "@/components/shared/AppBrandHeader";
+
+// Header for the pre-session player pages (join/thank-you) — reuses the
+// exact same AppBrandHeader shown on every bottom-nav screen (Play/Courts/
+// Stats/Leaderboard) rather than a separate logo treatment, so branding is
+// consistent everywhere a player can land, not just once they're in a
+// session.
 export function PlayerHeader() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-center border-b border-border bg-card px-4">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/branding/logo.png" alt="Logo" className="h-8 w-auto sm:h-9" />
+    <header className="shrink-0 border-b border-border bg-card">
+      <AppBrandHeader className="pb-4" />
     </header>
   );
 }
